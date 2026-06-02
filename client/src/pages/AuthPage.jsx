@@ -2,8 +2,8 @@ import { LockKeyhole, Mail, Phone, UserRound } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import { api, getErrorMessage } from "../lib/api.js";
-import { firstError, validateEmail, validateName, validatePassword, validatePhone } from "../lib/validation.js";
+import { api, getErrorMessage } from "../services/api.js";
+import { firstError, validateEmail, validateName, validatePassword, validatePhone } from "../utils/validation.js";
 
 export default function AuthPage({ mode }) {
   const isRegister = mode === "register";

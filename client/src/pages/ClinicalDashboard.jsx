@@ -5,8 +5,8 @@ import Feedback from "../components/Feedback.jsx";
 import FeatureTabs from "../components/FeatureTabs.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
-import { api, getErrorMessage } from "../lib/api.js";
-import { formatDateTime, todayInput } from "../lib/format.js";
+import { api, getErrorMessage } from "../services/api.js";
+import { formatDateTime, todayInput } from "../utils/format.js";
 
 export default function ClinicalDashboard() {
   const { user } = useAuth();

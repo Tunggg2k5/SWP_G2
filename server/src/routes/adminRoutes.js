@@ -17,7 +17,7 @@ import StaffSchedule from "../models/StaffSchedule.js";
 import TimeSlot from "../models/TimeSlot.js";
 import User from "../models/User.js";
 import { getInheritanceChain, getRoleHierarchyList, ROLE_HIERARCHY } from "../config/roleHierarchy.js";
-import { authorize, requireAuth } from "../middleware/auth.js";
+import { authorize, requireAuth } from "../middlewares/auth.js";
 import { hashPassword } from "../utils/password.js";
 import {
   emailSchema,

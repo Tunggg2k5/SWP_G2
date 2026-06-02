@@ -4,9 +4,9 @@ import EmptyState from "../components/EmptyState.jsx";
 import Feedback from "../components/Feedback.jsx";
 import FeatureTabs from "../components/FeatureTabs.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
-import { api, getErrorMessage } from "../lib/api.js";
-import { formatDateTime, todayInput } from "../lib/format.js";
-import { firstError, requireValue, validateDate, validateEmail, validateName, validateNote, validatePhone } from "../lib/validation.js";
+import { api, getErrorMessage } from "../services/api.js";
+import { formatDateTime, todayInput } from "../utils/format.js";
+import { firstError, requireValue, validateDate, validateEmail, validateName, validateNote, validatePhone } from "../utils/validation.js";
 
 const receptionistFeatures = [
   { id: "appointments", label: "Lịch hẹn", icon: ClipboardList },

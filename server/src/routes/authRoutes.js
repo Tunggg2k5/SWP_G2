@@ -5,7 +5,7 @@ import Patient from "../models/Patient.js";
 import Notification from "../models/Notification.js";
 import Role from "../models/Role.js";
 import { getInheritanceChain } from "../config/roleHierarchy.js";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth } from "../middlewares/auth.js";
 import { comparePassword, hashPassword } from "../utils/password.js";
 import { signToken } from "../utils/tokens.js";
 import { emailSchema, nameSchema, passwordSchema, phoneSchema } from "../utils/validation.js";

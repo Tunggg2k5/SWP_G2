@@ -6,7 +6,7 @@ import Prescription from "../models/Prescription.js";
 import RoomStatus from "../models/RoomStatus.js";
 import TreatmentRecord from "../models/TreatmentRecord.js";
 import TreatmentPlan from "../models/TreatmentPlan.js";
-import { authorize, requireAuth } from "../middleware/auth.js";
+import { authorize, requireAuth } from "../middlewares/auth.js";
 import { endOfLocalDay, startOfLocalDay } from "../utils/time.js";
 
 const router = Router();

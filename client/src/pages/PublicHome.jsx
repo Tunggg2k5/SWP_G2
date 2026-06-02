@@ -1,24 +1,33 @@
 import {
-  Bell,
+  Activity,
   Building2,
   CalendarDays,
-  ChevronDown,
-  Clock,
-  Globe2,
-  MapPin,
-  MessageCircle,
+  CheckCircle2,
+  ClipboardList,
+  CreditCard,
+  DoorOpen,
+  FileText,
+  LogIn,
   Phone,
-  ShieldCheck
+  ReceiptText,
+  Search,
+  ShieldCheck,
+  Stethoscope,
+  UserCog,
+  UserPlus,
+  UsersRound
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Feedback from "../components/Feedback.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
-import { api, getErrorMessage } from "../lib/api.js";
-import { formatMoney, todayInput } from "../lib/format.js";
-import { firstError, requireValue, validateDate, validateName, validateNote, validatePhone } from "../lib/validation.js";
+import { usePublicBootstrap } from "../hooks/usePublicBootstrap.js";
+import { api, getErrorMessage } from "../services/api.js";
+import { formatMoney, todayInput } from "../utils/format.js";
+import { actorUseCaseCoverage, erdCoverage, systemHighlights } from "../utils/useCaseCoverage.js";
+import { firstError, requireValue, validateDate, validateName, validateNote, validatePhone } from "../utils/validation.js";
 
-const clinicBranches = {
+const branchMap = {
   "TP. Hồ Chí Minh": [
     "DAS Quận 1 - 150 Hai Bà Trưng",
     "DAS Quận 3 - 345 Lê Văn Sỹ",
@@ -30,37 +39,40 @@ const clinicBranches = {
   "Cần Thơ": ["DAS Ninh Kiều - 202 Đường 3/2"]
 };
 
-const provinceOptions = Object.keys(clinicBranches);
-const defaultProvince = provinceOptions[0];
-const defaultBranch = clinicBranches[defaultProvince][0];
-const needOptions = ["Niềng răng", "Tư vấn Implant", "Bọc răng sứ", "Khác"];
+const provinceOptions = Object.keys(branchMap);
+const needOptions = ["Tư vấn bác sĩ", "Trám răng", "Nhổ răng khôn", "Lấy cao răng", "Tẩy trắng răng"];
+
+const actorIcons = {
+  Guest: Search,
+  User: UserCog,
+  Patient: UsersRound,
+  Receptionist: ClipboardList,
+  "Clinical Staff": Stethoscope,
+  Dentist: Activity,
+  Nurse: ShieldCheck,
+  Admin: UserCog
+};
+
+const moduleIcons = [Building2, CalendarDays, DoorOpen, ReceiptText, Bell, FileText];
 
 export default function PublicHome() {
   const { user } = useAuth();
+  const { services, dentists, rooms } = usePublicBootstrap();
   const minDate = useMemo(() => todayInput(), []);
-  const [services, setServices] = useState([]);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [captchaChecked, setCaptchaChecked] = useState(false);
   const [form, setForm] = useState({
     salutation: "Anh",
-    needType: "Khác",
+    needType: "Tư vấn bác sĩ",
     fullName: "",
     phone: "",
-    province: defaultProvince,
-    branch: defaultBranch,
+    province: provinceOptions[0],
+    branch: branchMap[provinceOptions[0]][0],
     serviceId: "",
     preferredDate: "",
     preferredTime: "",
     note: ""
   });
-
-  useEffect(() => {
-    api
-      .get("/services")
-      .then((res) => setServices(res.data.services))
-      .catch(() => setServices([]));
-  }, []);
 
   function updateForm(field, value) {
     setForm((current) => {
@@ -68,7 +80,7 @@ export default function PublicHome() {
         return {
           ...current,
           province: value,
-          branch: clinicBranches[value]?.[0] || ""
+          branch: branchMap[value]?.[0] || ""
         };
       }
 
@@ -76,7 +88,7 @@ export default function PublicHome() {
     });
   }
 
-  async function submitAppointmentRequest(event) {
+  async function submitConsultation(event) {
     event.preventDefault();
     setMessage("");
     setError("");
@@ -87,8 +99,7 @@ export default function PublicHome() {
       validateNote(form.note),
       form.preferredDate ? validateDate(form.preferredDate) : "",
       requireValue(form.province, "Tỉnh thành"),
-      requireValue(form.branch, "Chi nhánh"),
-      captchaChecked ? "" : "Vui lòng xác nhận bạn không phải là người máy."
+      requireValue(form.branch, "Chi nhánh")
     );
 
     if (validationError) {
@@ -108,247 +119,278 @@ export default function PublicHome() {
           `Nhu cầu: ${form.needType}`,
           `Tỉnh thành: ${form.province}`,
           `Chi nhánh: ${form.branch}`,
-          form.note ? `Ghi chú: ${form.note}` : "Khách muốn đặt lịch hẹn nhanh."
+          form.note ? `Ghi chú: ${form.note}` : "Khách muốn đặt lịch tư vấn."
         ].join(". ")
       });
+
       setForm({
         salutation: "Anh",
-        needType: "Khác",
+        needType: "Tư vấn bác sĩ",
         fullName: "",
         phone: "",
-        province: defaultProvince,
-        branch: defaultBranch,
+        province: provinceOptions[0],
+        branch: branchMap[provinceOptions[0]][0],
         serviceId: "",
         preferredDate: "",
         preferredTime: "",
         note: ""
       });
-      setCaptchaChecked(false);
-      setMessage("Đã nhận yêu cầu đặt lịch. Lễ tân sẽ liên hệ trong khoảng 3 phút.");
+      setMessage("Đã ghi nhận yêu cầu tư vấn. Lễ tân sẽ liên hệ để xác nhận lịch.");
     } catch (err) {
       setError(getErrorMessage(err));
     }
   }
 
   return (
-    <div className="guest-page">
+    <div className="clinic-portal">
       <Feedback error={error} message={message} onClear={() => { setError(""); setMessage(""); }} />
 
-      <header className="guest-header">
-        <div className="guest-header-inner">
-          <Link className="guest-brand" to="/">
-            <span className="guest-brand-mark">
-              <span>DAS</span>
-            </span>
-            <span className="guest-brand-name">NHA KHOA DAS</span>
-          </Link>
+      <header className="portal-nav">
+        <Link className="portal-brand" to="/">
+          <span className="portal-brand-mark">DAS</span>
+          <span>Nha khoa DAS</span>
+        </Link>
 
-          <nav className="guest-nav" aria-label="Điều hướng khách">
-            <a href="#intro">Giới thiệu <ChevronDown size={14} /></a>
-            <a href="#services">Dịch vụ <ChevronDown size={14} /></a>
-            <a href="#pricing">Bảng giá</a>
-            <a href="#news">Tin tức <ChevronDown size={14} /></a>
-          </nav>
+        <nav className="portal-nav-links" aria-label="Điều hướng public">
+          <a href="#booking">Đặt lịch</a>
+          <a href="#actors">Actors</a>
+          <a href="#services">Dịch vụ</a>
+          <a href="#erd">ERD</a>
+        </nav>
 
-          <div className="guest-actions">
-            <a className="guest-action danger" href="#appointment">
-              <CalendarDays size={17} />
-              ĐẶT HẸN
-            </a>
-            <a className="guest-action phone" href="tel:19006899">
-              <Phone size={18} />
-              1900 6899
-            </a>
-            <button className="guest-action lang" type="button">
-              <Globe2 size={17} />
-              EN
-            </button>
-            {user ? (
-              <Link className="guest-login" to="/dashboard">Dashboard</Link>
-            ) : (
-              <Link className="guest-login" to="/login">Đăng nhập</Link>
-            )}
-          </div>
+        <div className="portal-actions">
+          <a className="button ghost" href="tel:19006899">
+            <Phone size={17} />
+            1900 6899
+          </a>
+          {user ? (
+            <Link className="button primary" to="/dashboard">
+              Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link className="button ghost" to="/login">
+                <LogIn size={17} />
+                Đăng nhập
+              </Link>
+              <Link className="button primary" to="/register">
+                <UserPlus size={17} />
+                Tạo tài khoản
+              </Link>
+            </>
+          )}
         </div>
       </header>
 
-      <main className="guest-main" id="appointment">
-        <section className="guest-hero">
-          <div className="guest-hero-inner">
-            <div className="guest-title">
-              <span className="guest-kicker">Hệ thống đặt lịch phòng khám nha khoa</span>
-              <h1>ĐẶT LỊCH HẸN</h1>
-              <p>
-                <span>Vui lòng để lại thông tin, nhu cầu và chi nhánh mong muốn.</span>
-                <span>Nha Khoa DAS sẽ liên hệ trong vòng <strong>3 phút</strong></span>
-                <em>(Tổng đài hỗ trợ từ <strong>7h30-23h30</strong> mỗi ngày)</em>
-              </p>
-              <div className="guest-proof-row" aria-label="Thông tin vận hành">
-                <span><Building2 size={17} /> 5 phòng khám</span>
-                <span><Clock size={17} /> 07:00-17:30</span>
-                <span><ShieldCheck size={17} /> Hồ sơ bảo mật</span>
-              </div>
+      <main className="portal-main">
+        <section className="portal-hero-band" id="booking">
+          <div className="portal-copy">
+            <p className="eyebrow">Dental Appointment System</p>
+            <h1>Quản lý đặt lịch phòng khám nha khoa</h1>
+            <p>
+              Hệ thống DAS hỗ trợ đặt lịch online, đặt lịch offline qua lễ tân, waitlist, điều trị, thanh toán, đánh giá,
+              thông báo và quản trị lịch nhân sự theo đúng tài liệu yêu cầu.
+            </p>
+
+            <div className="portal-stat-grid">
+              {systemHighlights.map((item) => (
+                <article className="portal-stat" key={item.label}>
+                  <strong>{item.label}</strong>
+                  <span>{item.value}</span>
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <form className="portal-form-panel" onSubmit={submitConsultation}>
+            <div className="section-title tight-title">
+              <CalendarDays size={20} />
+              <h2>Yêu cầu tư vấn đặt lịch</h2>
             </div>
 
-            <form className="guest-appointment-form" onSubmit={submitAppointmentRequest}>
-              <div className="guest-radio-row" role="radiogroup" aria-label="Danh xưng">
-                <label>
+            <div className="segmented-control" role="radiogroup" aria-label="Danh xưng">
+              {["Anh", "Chị"].map((option) => (
+                <label key={option}>
                   <input
                     type="radio"
                     name="salutation"
-                    value="Anh"
-                    checked={form.salutation === "Anh"}
+                    value={option}
+                    checked={form.salutation === option}
                     onChange={(event) => updateForm("salutation", event.target.value)}
                   />
-                  Anh
+                  <span>{option}</span>
                 </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="salutation"
-                    value="Chị"
-                    checked={form.salutation === "Chị"}
-                    onChange={(event) => updateForm("salutation", event.target.value)}
-                  />
-                  Chị
-                </label>
-              </div>
+              ))}
+            </div>
 
-              <div className="guest-need-row" role="radiogroup" aria-label="Nhu cầu nha khoa">
-                {needOptions.map((need) => (
-                  <label key={need}>
-                    <input
-                      type="radio"
-                      name="needType"
-                      value={need}
-                      checked={form.needType === need}
-                      onChange={(event) => updateForm("needType", event.target.value)}
-                    />
-                    {need}
-                  </label>
+            <div className="need-control" role="radiogroup" aria-label="Nhu cầu nha khoa">
+              {needOptions.map((need) => (
+                <label key={need}>
+                  <input
+                    type="radio"
+                    name="needType"
+                    value={need}
+                    checked={form.needType === need}
+                    onChange={(event) => updateForm("needType", event.target.value)}
+                  />
+                  <span>{need}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="portal-form-grid">
+              <input
+                value={form.fullName}
+                onChange={(event) => updateForm("fullName", event.target.value)}
+                placeholder="Họ tên"
+                required
+                maxLength={120}
+              />
+              <input
+                type="tel"
+                value={form.phone}
+                onChange={(event) => updateForm("phone", event.target.value)}
+                placeholder="Số điện thoại"
+                required
+                maxLength={13}
+              />
+              <select value={form.serviceId} onChange={(event) => updateForm("serviceId", event.target.value)}>
+                <option value="">Dịch vụ quan tâm</option>
+                {services.map((service) => (
+                  <option value={service._id} key={service._id}>
+                    {service.name}
+                  </option>
                 ))}
-              </div>
+              </select>
+              <select value={form.province} onChange={(event) => updateForm("province", event.target.value)} required>
+                {provinceOptions.map((province) => (
+                  <option value={province} key={province}>
+                    {province}
+                  </option>
+                ))}
+              </select>
+              <select className="wide" value={form.branch} onChange={(event) => updateForm("branch", event.target.value)} required>
+                {(branchMap[form.province] || []).map((branch) => (
+                  <option value={branch} key={branch}>
+                    {branch}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="date"
+                value={form.preferredDate}
+                min={minDate}
+                onChange={(event) => updateForm("preferredDate", event.target.value)}
+                aria-label="Ngày mong muốn"
+              />
+              <input
+                type="time"
+                value={form.preferredTime}
+                onChange={(event) => updateForm("preferredTime", event.target.value)}
+                aria-label="Giờ mong muốn"
+              />
+              <textarea
+                className="wide"
+                value={form.note}
+                onChange={(event) => updateForm("note", event.target.value)}
+                placeholder="Ghi chú triệu chứng hoặc yêu cầu thêm"
+                rows="3"
+                maxLength={1000}
+              />
+            </div>
 
-              <div className="guest-form-grid">
-                <input
-                  value={form.fullName}
-                  onChange={(event) => updateForm("fullName", event.target.value)}
-                  placeholder="Họ tên..."
-                  required
-                  maxLength={120}
-                />
-                <input
-                  type="tel"
-                  value={form.phone}
-                  onChange={(event) => updateForm("phone", event.target.value)}
-                  placeholder="Số điện thoại..."
-                  required
-                  maxLength={13}
-                />
-                <select value={form.serviceId} onChange={(event) => updateForm("serviceId", event.target.value)}>
-                  <option value="">Dịch vụ quan tâm...</option>
-                  {services.map((service) => (
-                    <option value={service._id} key={service._id}>
-                      {service.name}
-                    </option>
-                  ))}
-                </select>
-                <select value={form.province} onChange={(event) => updateForm("province", event.target.value)} required>
-                  {provinceOptions.map((province) => (
-                    <option value={province} key={province}>
-                      {province}
-                    </option>
-                  ))}
-                </select>
-                <select className="wide" value={form.branch} onChange={(event) => updateForm("branch", event.target.value)} required>
-                  {(clinicBranches[form.province] || []).map((branch) => (
-                    <option value={branch} key={branch}>
-                      {branch}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="date"
-                  value={form.preferredDate}
-                  min={minDate}
-                  onChange={(event) => updateForm("preferredDate", event.target.value)}
-                  aria-label="Ngày mong muốn"
-                />
-                <input
-                  type="time"
-                  value={form.preferredTime}
-                  onChange={(event) => updateForm("preferredTime", event.target.value)}
-                  aria-label="Giờ mong muốn"
-                />
-                <textarea
-                  value={form.note}
-                  onChange={(event) => updateForm("note", event.target.value)}
-                  placeholder="Ghi chú (nếu có)..."
-                  rows="2"
-                  maxLength={1000}
-                />
-              </div>
+            <button className="button primary full">
+              <CalendarDays size={17} />
+              Gửi yêu cầu
+            </button>
+          </form>
+        </section>
 
-              <div className="guest-form-footer">
-                <label className="guest-captcha">
-                  <input
-                    type="checkbox"
-                    checked={captchaChecked}
-                    onChange={(event) => setCaptchaChecked(event.target.checked)}
-                  />
-                  <span>Tôi không phải là người máy</span>
-                  <ShieldCheck size={32} />
-                  <small>reCAPTCHA</small>
-                </label>
-
-                <button className="guest-submit" type="submit">
-                  <CalendarDays size={17} />
-                  ĐẶT LỊCH HẸN
-                </button>
-              </div>
-            </form>
+        <section className="portal-section" id="actors">
+          <div className="portal-section-heading">
+            <p className="eyebrow">Actors & Use Cases</p>
+            <h2>Coverage theo tài liệu DAS System Requirements</h2>
+          </div>
+          <div className="actor-grid">
+            {actorUseCaseCoverage.map((actor) => {
+              const Icon = actorIcons[actor.actor] || CheckCircle2;
+              return (
+                <article className="actor-card" key={actor.actor}>
+                  <div className="actor-card-head">
+                    <Icon size={22} />
+                    <div>
+                      <h3>{actor.actor}</h3>
+                      <span>{actor.inherits}</span>
+                    </div>
+                  </div>
+                  <p>{actor.summary}</p>
+                  <ul className="usecase-list">
+                    {actor.useCases.map((item) => (
+                      <li key={item}>
+                        <CheckCircle2 size={15} />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              );
+            })}
           </div>
         </section>
 
-        <section className="guest-service-strip" id="services">
-          {services.slice(0, 4).map((service) => (
-            <article key={service._id}>
-              <strong>{service.name}</strong>
-              <span>{service.requiresPrepayment ? formatMoney(service.price) : "Tư vấn sau khám"}</span>
-            </article>
-          ))}
-        </section>
-
-        <section className="guest-branch-section" id="intro">
-          <div>
-            <span className="guest-kicker">Nha khoa tiêu chuẩn chất lượng</span>
-            <h2>Hệ thống chi nhánh DAS</h2>
+        <section className="portal-section split-section" id="services">
+          <div className="portal-section-heading">
+            <p className="eyebrow">Dịch vụ, bác sĩ, phòng khám</p>
+            <h2>Dữ liệu public từ MongoDB Atlas</h2>
           </div>
-          <div className="guest-branch-grid">
-            {provinceOptions.slice(0, 4).map((province) => (
-              <article key={province}>
-                <MapPin size={18} />
-                <strong>{province}</strong>
-                <span>{clinicBranches[province][0]}</span>
+
+          <div className="service-grid">
+            {services.slice(0, 6).map((service) => (
+              <article className="service-card" key={service._id}>
+                <strong>{service.name}</strong>
+                <span>{service.durationMinutes} phút + {service.transitionTime || 10} phút chuyển giao</span>
+                <small>{service.requiresPrepayment ? formatMoney(service.price) : "Tư vấn chi phí sau khám"}</small>
               </article>
             ))}
           </div>
+
+          <div className="resource-rail">
+            <article>
+              <UsersRound size={20} />
+              <strong>{dentists.length || 8} bác sĩ</strong>
+              <span>Hồ sơ bác sĩ và chuyên môn phục vụ View Dentist Profiles.</span>
+            </article>
+            <article>
+              <DoorOpen size={20} />
+              <strong>{rooms.length || 5} phòng khám</strong>
+              <span>Trạng thái phòng hỗ trợ đặt lịch động và cập nhật phòng.</span>
+            </article>
+            <article>
+              <CreditCard size={20} />
+              <strong>Invoice & Payment</strong>
+              <span>Thanh toán khi check-in hoặc online theo hóa đơn bệnh nhân.</span>
+            </article>
+          </div>
+        </section>
+
+        <section className="portal-section" id="erd">
+          <div className="portal-section-heading">
+            <p className="eyebrow">ERD coverage</p>
+            <h2>Các nhóm bảng chính đã được ánh xạ trong dự án</h2>
+          </div>
+          <div className="erd-grid">
+            {erdCoverage.map((item, index) => {
+              const Icon = moduleIcons[index % moduleIcons.length];
+              return (
+                <article key={item}>
+                  <Icon size={18} />
+                  <span>{item}</span>
+                </article>
+              );
+            })}
+          </div>
         </section>
       </main>
-
-      <button className="guest-bell" type="button" aria-label="Thông báo">
-        <Bell size={27} />
-        <span>6</span>
-      </button>
-      <button className="guest-chat" type="button" aria-label="Chat tư vấn">
-        <MessageCircle size={33} />
-      </button>
-      <nav className="guest-bottom-actions" aria-label="Liên hệ nhanh">
-        <a href="tel:19006899"><Phone size={18} /> Gọi ngay</a>
-        <a href="#appointment"><CalendarDays size={18} /> Đặt hẹn</a>
-        <a href="#appointment"><MessageCircle size={18} /> Chat ngay</a>
-        <a href="#intro"><MapPin size={18} /> Chi nhánh</a>
-      </nav>
     </div>
   );
 }

@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import { canUsePatientBooking, canUsePublicLookup, formatInheritanceChain, roleLabels } from "../lib/roles.js";
+import { canUsePatientBooking, canUsePublicLookup, formatInheritanceChain, roleLabels } from "../utils/roles.js";
 
 function navForRole(role) {
   const base = [];

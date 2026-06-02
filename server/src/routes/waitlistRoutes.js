@@ -3,7 +3,7 @@ import { z } from "zod";
 import WaitlistEntry from "../models/WaitlistEntry.js";
 import Notification from "../models/Notification.js";
 import User from "../models/User.js";
-import { authorize, requireAuth } from "../middleware/auth.js";
+import { authorize, requireAuth } from "../middlewares/auth.js";
 import { addMinutes, startOfLocalDay } from "../utils/time.js";
 import {
   futureDateInputSchema,

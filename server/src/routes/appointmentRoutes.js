@@ -6,7 +6,7 @@ import DentalService from "../models/DentalService.js";
 import Invoice from "../models/Invoice.js";
 import Notification from "../models/Notification.js";
 import Payment from "../models/Payment.js";
-import { authorize, requireAuth } from "../middleware/auth.js";
+import { authorize, requireAuth } from "../middlewares/auth.js";
 import { assertTwelveHourRule, endOfLocalDay, startOfLocalDay } from "../utils/time.js";
 import {
   futureDateInputSchema,

@@ -4,10 +4,10 @@ import { useNavigate } from "react-router-dom";
 import EmptyState from "../components/EmptyState.jsx";
 import Feedback from "../components/Feedback.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
-import { api, getErrorMessage } from "../lib/api.js";
-import { formatMoney, formatTime, todayInput } from "../lib/format.js";
-import { canUsePatientBooking } from "../lib/roles.js";
-import { firstError, requireValue, validateDate, validateNote } from "../lib/validation.js";
+import { api, getErrorMessage } from "../services/api.js";
+import { formatMoney, formatTime, todayInput } from "../utils/format.js";
+import { canUsePatientBooking } from "../utils/roles.js";
+import { firstError, requireValue, validateDate, validateNote } from "../utils/validation.js";
 
 export default function BookingPage() {
   const { user } = useAuth();

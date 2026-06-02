@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import EmptyState from "../components/EmptyState.jsx";
 import Feedback from "../components/Feedback.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
-import { api, getErrorMessage } from "../lib/api.js";
-import { firstError, validateName, validatePassword, validatePhone } from "../lib/validation.js";
+import { api, getErrorMessage } from "../services/api.js";
+import { firstError, validateName, validatePassword, validatePhone } from "../utils/validation.js";
 
 export default function ProfilePage() {
   const { user } = useAuth();

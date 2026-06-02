@@ -4,10 +4,10 @@ import EmptyState from "../components/EmptyState.jsx";
 import Feedback from "../components/Feedback.jsx";
 import FeatureTabs from "../components/FeatureTabs.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
-import { api, getErrorMessage } from "../lib/api.js";
-import { formatDateTime, formatMoney, todayInput } from "../lib/format.js";
-import { formatInheritanceChain, roleLabels } from "../lib/roles.js";
-import { firstError, requireValue, validateDate, validateEmail, validateName, validateNote, validatePhone } from "../lib/validation.js";
+import { api, getErrorMessage } from "../services/api.js";
+import { formatDateTime, formatMoney, todayInput } from "../utils/format.js";
+import { formatInheritanceChain, roleLabels } from "../utils/roles.js";
+import { firstError, requireValue, validateDate, validateEmail, validateName, validateNote, validatePhone } from "../utils/validation.js";
 
 const adminFeatures = [
   { id: "overview", label: "Thống kê", icon: BarChart3 },

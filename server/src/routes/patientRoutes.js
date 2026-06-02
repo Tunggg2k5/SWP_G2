@@ -7,7 +7,7 @@ import Payment from "../models/Payment.js";
 import Review from "../models/Review.js";
 import TreatmentRecord from "../models/TreatmentRecord.js";
 import WaitlistEntry from "../models/WaitlistEntry.js";
-import { authorize, requireAuth } from "../middleware/auth.js";
+import { authorize, requireAuth } from "../middlewares/auth.js";
 import { noteSchema, objectIdSchema } from "../utils/validation.js";
 
 const router = Router();

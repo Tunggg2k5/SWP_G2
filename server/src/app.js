@@ -10,7 +10,7 @@ import patientRoutes from "./routes/patientRoutes.js";
 import publicRoutes from "./routes/publicRoutes.js";
 import receptionRoutes from "./routes/receptionRoutes.js";
 import waitlistRoutes from "./routes/waitlistRoutes.js";
-import { errorHandler, notFound } from "./middleware/errorHandler.js";
+import { errorHandler, notFound } from "./middlewares/errorHandler.js";
 
 const app = express();
 
