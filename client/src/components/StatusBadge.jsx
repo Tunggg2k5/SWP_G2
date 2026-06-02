@@ -1,8 +1,8 @@
 const labels = {
   scheduled: "Đã đặt",
   confirmed: "Đã xác nhận",
+  called: "Đã gọi",
   checked_in: "Đã đến",
-  in_treatment: "Đang khám",
   completed: "Hoàn tất",
   cancelled: "Đã hủy",
   no_show: "Vắng mặt",

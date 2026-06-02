@@ -1,4 +1,4 @@
-import { CalendarSearch, Clock, DoorOpen, ListPlus, UserRoundCheck } from "lucide-react";
+import { CalendarSearch, Clock, DoorOpen, Filter, UserRoundCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import EmptyState from "../components/EmptyState.jsx";
@@ -9,6 +9,12 @@ import { formatMoney, formatTime, todayInput } from "../utils/format.js";
 import { canUsePatientBooking } from "../utils/roles.js";
 import { firstError, requireValue, validateDate, validateNote } from "../utils/validation.js";
 
+const shiftOptions = [
+  { value: "all", label: "Tất cả ca" },
+  { value: "Ca sáng", label: "Ca sáng" },
+  { value: "Ca chiều", label: "Ca chiều" }
+];
+
 export default function BookingPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -16,6 +22,8 @@ export default function BookingPage() {
   const [services, setServices] = useState([]);
   const [serviceId, setServiceId] = useState("");
   const [date, setDate] = useState(minDate);
+  const [shift, setShift] = useState("all");
+  const [dentistId, setDentistId] = useState("all");
   const [slots, setSlots] = useState([]);
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
@@ -83,6 +91,10 @@ export default function BookingPage() {
       return;
     }
 
+    if (!window.confirm(`Xác nhận đặt lịch ${slot.service.name} lúc ${formatTime(slot.startAt)} tại ${slot.room.name}?`)) {
+      return;
+    }
+
     setError("");
     setMessage("");
 
@@ -101,36 +113,15 @@ export default function BookingPage() {
     }
   }
 
-  async function joinWaitlist() {
-    if (!user) {
-      navigate("/login");
-      return;
-    }
-
-    if (!canUsePatientBooking(user.role)) {
-      setError("Chỉ tài khoản bệnh nhân được tham gia danh sách chờ tại màn này.");
-      return;
-    }
-
-    const validationError = validateBookingInputs();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    try {
-      await api.post("/waitlist", {
-        serviceId,
-        preferredDate: date,
-        note
-      });
-      setMessage("Đã tham gia danh sách chờ. Lễ tân sẽ liên hệ khi có lịch trống.");
-    } catch (err) {
-      setError(getErrorMessage(err));
-    }
-  }
-
   const selectedService = services.find((service) => service._id === serviceId);
+  const dentists = Array.from(
+    new Map(slots.map((slot) => [slot.dentist?._id, slot.dentist]).filter(([id]) => id)).values()
+  );
+  const filteredSlots = slots.filter((slot) => {
+    const matchesShift = shift === "all" || slot.session === shift;
+    const matchesDentist = dentistId === "all" || slot.dentist?._id === dentistId;
+    return matchesShift && matchesDentist;
+  });
 
   return (
     <div className="page-grid">
@@ -158,6 +149,29 @@ export default function BookingPage() {
             <input type="date" value={date} min={minDate} onChange={(e) => setDate(e.target.value)} required />
           </label>
 
+          <label className="field">
+            <span>Ca</span>
+            <select value={shift} onChange={(e) => setShift(e.target.value)}>
+              {shiftOptions.map((option) => (
+                <option value={option.value} key={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="field">
+            <span>Bác sĩ</span>
+            <select value={dentistId} onChange={(e) => setDentistId(e.target.value)}>
+              <option value="all">Tất cả bác sĩ</option>
+              {dentists.map((dentist) => (
+                <option value={dentist._id} key={dentist._id}>
+                  {dentist.fullName}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <label className="field wide">
             <span>Ghi chú</span>
             <input
@@ -175,7 +189,9 @@ export default function BookingPage() {
               <Clock size={16} /> {selectedService.durationMinutes} phút + 10 phút chuyển giao
             </span>
             <span>{selectedService.requiresPrepayment ? `Thanh toán khi đến khám: ${formatMoney(selectedService.price)}` : "Chi phí xác định sau khám"}</span>
-            <span>Giờ đến: trước 08:00 đến 07:00; từ 08:00 đến trước 1 giờ; ca chiều trước 14:30 đến 13:30.</span>
+            <span>
+              <Filter size={16} /> Có thể lọc lịch trống theo ngày, ca và bác sĩ.
+            </span>
           </div>
         )}
       </section>
@@ -188,9 +204,9 @@ export default function BookingPage() {
 
         {loading ? (
           <div className="empty-state">Đang tải lịch trống...</div>
-        ) : slots.length ? (
+        ) : filteredSlots.length ? (
           <div className="slot-grid">
-            {slots.map((slot) => (
+            {filteredSlots.map((slot) => (
               <article className="slot-card" key={`${slot.room._id}-${slot.startAt}`}>
                 <div className="slot-time">
                   <strong>{formatTime(slot.startAt)}</strong>
@@ -213,13 +229,7 @@ export default function BookingPage() {
             ))}
           </div>
         ) : (
-          <div className="waitlist-box">
-            <EmptyState title="Không còn lịch phù hợp" text="Bạn có thể tham gia danh sách chờ cho ngày đã chọn." />
-            <button className="button secondary" onClick={joinWaitlist}>
-              <ListPlus size={18} />
-              Tham gia danh sách chờ
-            </button>
-          </div>
+          <EmptyState title="Không còn lịch phù hợp" text="Thử đổi ca, ngày hoặc bác sĩ để xem lịch trống khác." />
         )}
       </section>
     </div>

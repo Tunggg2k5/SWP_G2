@@ -4,8 +4,8 @@ import { getInheritanceChain, ROLE_HIERARCHY } from "../config/roleHierarchy.js"
 const userSchema = new mongoose.Schema(
   {
     fullName: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    phone: { type: String, trim: true },
+    email: { type: String, unique: true, lowercase: true, trim: true, sparse: true },
+    phone: { type: String, required: true, unique: true, trim: true },
     passwordHash: { type: String, required: true },
     roleRef: { type: mongoose.Schema.Types.ObjectId, ref: "Role" },
     role: {

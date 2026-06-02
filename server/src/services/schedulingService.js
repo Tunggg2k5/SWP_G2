@@ -17,7 +17,7 @@ import {
   startOfLocalDay
 } from "../utils/time.js";
 
-const BLOCKING_STATUSES = ["scheduled", "confirmed", "checked_in", "in_treatment"];
+const BLOCKING_STATUSES = ["scheduled", "confirmed", "checked_in"];
 
 function httpError(message, statusCode = 400) {
   const err = new Error(message);

@@ -1,12 +1,10 @@
 import {
-  Building2,
   CalendarDays,
   CheckCircle2,
   Clock,
   DoorOpen,
   LogIn,
   MapPin,
-  Phone,
   ShieldCheck,
   Stethoscope,
   UserPlus,
@@ -17,23 +15,16 @@ import { Link } from "react-router-dom";
 import Feedback from "../components/Feedback.jsx";
 import { usePublicBootstrap } from "../hooks/usePublicBootstrap.js";
 import { api, getErrorMessage } from "../services/api.js";
-import { formatMoney, todayInput } from "../utils/format.js";
-import { firstError, requireValue, validateDate, validateName, validateNote, validatePhone } from "../utils/validation.js";
+import { formatMoney } from "../utils/format.js";
+import { firstError, validateName, validatePhone } from "../utils/validation.js";
 
 const branchMap = {
-  "TP. Hồ Chí Minh": [
-    "DAS Quận 1 - 150 Hai Bà Trưng",
-    "DAS Quận 3 - 345 Lê Văn Sỹ",
-    "DAS Quận 7 - 493 Nguyễn Thị Thập"
-  ],
-  "Hà Nội": ["DAS Đống Đa - 224 Xã Đàn"],
-  "Đồng Nai": ["DAS Biên Hòa - 264A Phạm Văn Thuận"],
-  "Bình Dương": ["DAS Thủ Dầu Một - 01 Nguyễn Văn Tiết"],
-  "Cần Thơ": ["DAS Ninh Kiều - 202 Đường 3/2"]
+  "TP. Hồ Chí Minh": ["DAS Quận 1 - 150 Hai Bà Trưng"]
 };
 
 const provinceOptions = Object.keys(branchMap);
 const needOptions = ["Tư vấn bác sĩ", "Trám răng", "Nhổ răng khôn", "Lấy cao răng", "Tẩy trắng răng"];
+const salutationOptions = ["Anh", "Chị", "Other"];
 
 const fallbackDentists = [
   {
@@ -75,28 +66,20 @@ function getServiceSummary(service) {
 
 export default function PublicHome() {
   const { services, dentists, rooms } = usePublicBootstrap();
-  const minDate = useMemo(() => todayInput(), []);
   const clinicBranches = useMemo(() => getClinicBranches(), []);
   const dentistCards = dentists.length ? dentists.slice(0, 6) : fallbackDentists;
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [form, setForm] = useState({
     salutation: "Anh",
-    needType: "Tư vấn bác sĩ",
     fullName: "",
-    phone: "",
-    province: provinceOptions[0],
-    branch: branchMap[provinceOptions[0]][0],
-    serviceId: "",
-    preferredDate: "",
-    preferredTime: "",
-    note: ""
+    phone: ""
   });
 
   const heroHighlights = [
     {
       label: "Thông tin phòng khám",
-      value: `${clinicBranches.length} chi nhánh, ${rooms.length || 5} phòng khám đang hoạt động`
+      value: "1 chi nhánh tại TP. Hồ Chí Minh"
     },
     {
       label: "Profile bác sĩ",
@@ -133,11 +116,7 @@ export default function PublicHome() {
 
     const validationError = firstError(
       validateName(form.fullName),
-      validatePhone(form.phone),
-      validateNote(form.note),
-      form.preferredDate ? validateDate(form.preferredDate) : "",
-      requireValue(form.province, "Tỉnh thành"),
-      requireValue(form.branch, "Chi nhánh")
+      validatePhone(form.phone)
     );
 
     if (validationError) {
@@ -149,29 +128,17 @@ export default function PublicHome() {
       await api.post("/consultations", {
         fullName: form.fullName,
         phone: form.phone,
-        service: form.serviceId || undefined,
-        preferredDate: form.preferredDate || undefined,
-        preferredTime: form.preferredTime || undefined,
         message: [
           `Danh xưng: ${form.salutation}`,
-          `Nhu cầu: ${form.needType}`,
-          `Tỉnh thành: ${form.province}`,
-          `Chi nhánh: ${form.branch}`,
-          form.note ? `Ghi chú: ${form.note}` : "Khách muốn đặt lịch tư vấn."
+          `Chi nhánh: ${branchMap[provinceOptions[0]][0]}`,
+          "Khách muốn yêu cầu tư vấn đặt lịch."
         ].join(". ")
       });
 
       setForm({
         salutation: "Anh",
-        needType: "Tư vấn bác sĩ",
         fullName: "",
-        phone: "",
-        province: provinceOptions[0],
-        branch: branchMap[provinceOptions[0]][0],
-        serviceId: "",
-        preferredDate: "",
-        preferredTime: "",
-        note: ""
+        phone: ""
       });
       setMessage("Đã ghi nhận yêu cầu tư vấn. Lễ tân sẽ liên hệ để xác nhận lịch.");
     } catch (err) {
@@ -184,23 +151,22 @@ export default function PublicHome() {
       <Feedback error={error} message={message} onClear={() => { setError(""); setMessage(""); }} />
 
       <header className="portal-nav">
-        <Link className="portal-brand" to="/">
+        <button className="portal-brand portal-brand-button" type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
           <span className="portal-brand-mark">DAS</span>
           <span>Nha khoa DAS</span>
-        </Link>
+        </button>
 
         <nav className="portal-nav-links" aria-label="Điều hướng public">
-          <a href="#booking">Đặt lịch</a>
+          <a href="#booking">Yêu cầu tư vấn đặt lịch</a>
           <a href="#clinics">Phòng khám</a>
           <a href="#dentists">Bác sĩ</a>
           <a href="#services">Dịch vụ</a>
         </nav>
 
         <div className="portal-actions">
-          <a className="button ghost" href="tel:19006899">
-            <Phone size={17} />
+          <span className="button ghost hotline-display">
             1900 6899
-          </a>
+          </span>
           <Link className="button ghost" to="/login">
             <LogIn size={17} />
             Đăng nhập
@@ -235,11 +201,11 @@ export default function PublicHome() {
           <form className="portal-form-panel" onSubmit={submitConsultation}>
             <div className="section-title tight-title">
               <CalendarDays size={20} />
-              <h2>Yêu cầu tư vấn đặt lịch</h2>
+            <h2>Yêu cầu tư vấn đặt lịch</h2>
             </div>
 
             <div className="segmented-control" role="radiogroup" aria-label="Danh xưng">
-              {["Anh", "Chị"].map((option) => (
+              {salutationOptions.map((option) => (
                 <label key={option}>
                   <input
                     type="radio"
@@ -249,21 +215,6 @@ export default function PublicHome() {
                     onChange={(event) => updateForm("salutation", event.target.value)}
                   />
                   <span>{option}</span>
-                </label>
-              ))}
-            </div>
-
-            <div className="need-control" role="radiogroup" aria-label="Nhu cầu nha khoa">
-              {needOptions.map((need) => (
-                <label key={need}>
-                  <input
-                    type="radio"
-                    name="needType"
-                    value={need}
-                    checked={form.needType === need}
-                    onChange={(event) => updateForm("needType", event.target.value)}
-                  />
-                  <span>{need}</span>
                 </label>
               ))}
             </div>
@@ -283,49 +234,6 @@ export default function PublicHome() {
                 placeholder="Số điện thoại"
                 required
                 maxLength={13}
-              />
-              <select value={form.serviceId} onChange={(event) => updateForm("serviceId", event.target.value)}>
-                <option value="">Dịch vụ quan tâm</option>
-                {services.map((service) => (
-                  <option value={service._id} key={service._id}>
-                    {service.name}
-                  </option>
-                ))}
-              </select>
-              <select value={form.province} onChange={(event) => updateForm("province", event.target.value)} required>
-                {provinceOptions.map((province) => (
-                  <option value={province} key={province}>
-                    {province}
-                  </option>
-                ))}
-              </select>
-              <select className="wide" value={form.branch} onChange={(event) => updateForm("branch", event.target.value)} required>
-                {(branchMap[form.province] || []).map((branch) => (
-                  <option value={branch} key={branch}>
-                    {branch}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="date"
-                value={form.preferredDate}
-                min={minDate}
-                onChange={(event) => updateForm("preferredDate", event.target.value)}
-                aria-label="Ngày mong muốn"
-              />
-              <input
-                type="time"
-                value={form.preferredTime}
-                onChange={(event) => updateForm("preferredTime", event.target.value)}
-                aria-label="Giờ mong muốn"
-              />
-              <textarea
-                className="wide"
-                value={form.note}
-                onChange={(event) => updateForm("note", event.target.value)}
-                placeholder="Ghi chú triệu chứng hoặc yêu cầu thêm"
-                rows="3"
-                maxLength={1000}
               />
             </div>
 
@@ -347,7 +255,7 @@ export default function PublicHome() {
                 <MapPin size={20} />
                 <div>
                   <strong>{clinic.branch}</strong>
-                  <span>{clinic.province}</span>
+                <span>{clinic.province} - Làm việc Thứ 2 - Thứ 7, 07:00-11:30 và 13:30-17:30</span>
                 </div>
               </article>
             ))}

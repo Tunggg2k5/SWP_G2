@@ -9,7 +9,6 @@ import clinicalRoutes from "./routes/clinicalRoutes.js";
 import patientRoutes from "./routes/patientRoutes.js";
 import publicRoutes from "./routes/publicRoutes.js";
 import receptionRoutes from "./routes/receptionRoutes.js";
-import waitlistRoutes from "./routes/waitlistRoutes.js";
 import { errorHandler, notFound } from "./middlewares/errorHandler.js";
 
 const app = express();
@@ -29,7 +28,6 @@ if (process.env.NODE_ENV !== "production" || process.env.ENABLE_HTTP_LOGS === "t
 app.use("/api", publicRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/appointments", appointmentRoutes);
-app.use("/api/waitlist", waitlistRoutes);
 app.use("/api/patient", patientRoutes);
 app.use("/api/reception", receptionRoutes);
 app.use("/api/clinical", clinicalRoutes);

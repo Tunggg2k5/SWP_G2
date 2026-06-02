@@ -26,7 +26,6 @@ import TimeSlot from "../models/TimeSlot.js";
 import TreatmentPlan from "../models/TreatmentPlan.js";
 import TreatmentRecord from "../models/TreatmentRecord.js";
 import User from "../models/User.js";
-import WaitlistEntry from "../models/WaitlistEntry.js";
 import { createAppointmentFromSlot } from "../services/schedulingService.js";
 import { isWorkingDate, toDateInputValue } from "../utils/time.js";
 import { hashPassword } from "../utils/password.js";
@@ -72,8 +71,7 @@ async function clearDatabase() {
     TimeSlot.deleteMany({}),
     TreatmentPlan.deleteMany({}),
     TreatmentRecord.deleteMany({}),
-    User.deleteMany({}),
-    WaitlistEntry.deleteMany({})
+    User.deleteMany({})
   ]);
 }
 
@@ -411,15 +409,6 @@ async function run() {
     preferredDate: new Date(`${date}T00:00:00`),
     preferredTime: "13:30",
     message: "Muốn tư vấn đau răng trước khi đặt lịch."
-  });
-
-  await WaitlistEntry.create({
-    patient: patients[0]._id,
-    receptionist: receptionists[0]._id,
-    service: services[1]._id,
-    preferredDate: new Date(`${date}T00:00:00`),
-    preferredTime: "Ca chiều",
-    note: "Ưu tiên buổi chiều nếu có lịch trống."
   });
 
   await Notification.create([

@@ -18,7 +18,7 @@ const appointmentSchema = new mongoose.Schema(
     arrivalAt: { type: Date, required: true },
     status: {
       type: String,
-      enum: ["scheduled", "confirmed", "checked_in", "in_treatment", "completed", "cancelled", "no_show"],
+      enum: ["scheduled", "confirmed", "checked_in", "completed", "cancelled", "no_show"],
       default: "scheduled"
     },
     paymentStatus: {

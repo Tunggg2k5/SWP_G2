@@ -195,7 +195,7 @@ router.patch("/:id/cancel", async (req, res, next) => {
 router.patch("/:id/status", authorize("receptionist", "admin", "nurse"), async (req, res, next) => {
   try {
     const schema = z.object({
-      status: z.enum(["scheduled", "confirmed", "checked_in", "in_treatment", "completed", "cancelled", "no_show"]),
+      status: z.enum(["scheduled", "confirmed", "checked_in", "completed", "cancelled", "no_show"]),
       note: noteSchema
     });
     const data = schema.parse(req.body);
@@ -204,6 +204,12 @@ router.patch("/:id/status", authorize("receptionist", "admin", "nurse"), async (
     if (!appointment) {
       const err = new Error("Không tìm thấy lịch hẹn.");
       err.statusCode = 404;
+      throw err;
+    }
+
+    if (req.user.role === "receptionist" && appointment.startAt > new Date()) {
+      const err = new Error("Lễ tân không thể cập nhật trạng thái lịch hẹn trong tương lai.");
+      err.statusCode = 409;
       throw err;
     }
 
@@ -271,6 +277,12 @@ router.patch("/:id/check-in", authorize("receptionist", "admin"), async (req, re
     if (!appointment) {
       const err = new Error("Không tìm thấy lịch hẹn.");
       err.statusCode = 404;
+      throw err;
+    }
+
+    if (appointment.startAt > new Date()) {
+      const err = new Error("Không thể check-in lịch hẹn trong tương lai.");
+      err.statusCode = 409;
       throw err;
     }
 

@@ -31,14 +31,13 @@ export const actorUseCaseCoverage = [
   {
     actor: "Patient",
     inherits: "User",
-    summary: "Bệnh nhân đặt lịch online, đổi/hủy lịch trước 12 giờ, vào waitlist, xem hồ sơ điều trị và thanh toán.",
+    summary: "Bệnh nhân đặt lịch online, đổi/hủy lịch trước 12 giờ, xem hồ sơ điều trị, hóa đơn và đánh giá trong lịch hẹn.",
     entry: "/dashboard",
     useCases: [
       "Booking Appointment",
       "View Appointment",
       "Reschedule Appointment",
       "Cancel Appointment",
-      "Join Waitlist",
       "View Treatment Record",
       "View Treatment Plan",
       "View Prescription",
@@ -50,7 +49,7 @@ export const actorUseCaseCoverage = [
   {
     actor: "Receptionist",
     inherits: "User",
-    summary: "Lễ tân vận hành lịch hẹn ngày, check-in/no-show, thanh toán, tư vấn, waitlist, phòng và đặt lịch hộ.",
+    summary: "Lễ tân vận hành lịch hẹn ngày, check-in/no-show, tư vấn, phòng khám và đặt lịch hộ.",
     entry: "/dashboard",
     useCases: [
       "Manage Appointments",

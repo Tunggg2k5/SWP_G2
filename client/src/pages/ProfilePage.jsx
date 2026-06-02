@@ -1,4 +1,4 @@
-import { Bell, LockKeyhole, Save, UserRound } from "lucide-react";
+import { Bell, Camera, LockKeyhole, Save, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import EmptyState from "../components/EmptyState.jsx";
 import Feedback from "../components/Feedback.jsx";
@@ -11,6 +11,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState({
     fullName: user?.fullName || "",
     phone: user?.phone || "",
+    avatarUrl: user?.avatarUrl || "",
     bio: user?.bio || ""
   });
   const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "" });
@@ -40,6 +41,8 @@ export default function ProfilePage() {
       return;
     }
 
+    if (!window.confirm("Xác nhận cập nhật hồ sơ?")) return;
+
     try {
       const res = await api.patch("/auth/me", profile);
       localStorage.setItem("das_user", JSON.stringify(res.data.user));
@@ -63,6 +66,8 @@ export default function ProfilePage() {
       return;
     }
 
+    if (!window.confirm("Xác nhận đổi mật khẩu?")) return;
+
     try {
       await api.patch("/auth/change-password", passwords);
       setPasswords({ currentPassword: "", newPassword: "" });
@@ -81,6 +86,10 @@ export default function ProfilePage() {
           <UserRound size={20} />
           <h2>Hồ sơ cá nhân</h2>
         </div>
+        <div className="profile-avatar-preview">
+          {profile.avatarUrl ? <img src={profile.avatarUrl} alt={profile.fullName || "Avatar"} /> : <UserRound size={34} />}
+          <span>{profile.fullName || user?.fullName}</span>
+        </div>
         <form className="form-grid" onSubmit={saveProfile}>
           <label className="field">
             <span>Họ tên</span>
@@ -89,6 +98,13 @@ export default function ProfilePage() {
           <label className="field">
             <span>Số điện thoại</span>
             <input type="tel" value={profile.phone} onChange={(e) => updateProfile("phone", e.target.value)} required maxLength={13} />
+          </label>
+          <label className="field wide">
+            <span>Avatar URL</span>
+            <div className="input-icon">
+              <Camera size={18} />
+              <input value={profile.avatarUrl} onChange={(e) => updateProfile("avatarUrl", e.target.value)} placeholder="https://..." />
+            </div>
           </label>
           <label className="field wide">
             <span>Ghi chú hồ sơ</span>

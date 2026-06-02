@@ -7,14 +7,12 @@ import DentalService from "../models/DentalService.js";
 import Patient from "../models/Patient.js";
 import Role from "../models/Role.js";
 import RoomStatus from "../models/RoomStatus.js";
-import WaitlistEntry from "../models/WaitlistEntry.js";
 import { getInheritanceChain } from "../config/roleHierarchy.js";
 import User from "../models/User.js";
 import { authorize, requireAuth } from "../middlewares/auth.js";
 import { hashPassword } from "../utils/password.js";
 import { endOfLocalDay, startOfLocalDay } from "../utils/time.js";
 import {
-  emailSchema,
   futureDateInputSchema,
   nameSchema,
   noteSchema,
@@ -46,7 +44,7 @@ router.get("/dashboard", async (req, res) => {
     };
   }
 
-  const [appointments, patients, services, waitlist, consultations, rooms] = await Promise.all([
+  const [appointments, patients, services, consultations, rooms] = await Promise.all([
     Appointment.find(appointmentQuery)
       .populate([
         { path: "patient", select: "fullName email phone" },
@@ -63,13 +61,6 @@ router.get("/dashboard", async (req, res) => {
       .lean(),
     User.find(patientFilter).select("-passwordHash").sort({ fullName: 1 }).limit(40).lean(),
     DentalService.find({ isActive: true }).sort({ name: 1 }).lean(),
-    WaitlistEntry.find({})
-      .populate("patient", "fullName email phone")
-      .populate("service", "name durationMinutes")
-      .populate("handledBy", "fullName")
-      .sort({ preferredDate: 1, createdAt: 1 })
-      .limit(100)
-      .lean(),
     ConsultationRequest.find({})
       .populate("service", "name")
       .populate("handledBy", "fullName")
@@ -82,7 +73,7 @@ router.get("/dashboard", async (req, res) => {
       .lean()
   ]);
 
-  res.json({ appointments, patients, services, waitlist, consultations, rooms });
+  res.json({ appointments, patients, services, consultations, rooms });
 });
 
 router.get("/patients", async (req, res) => {
@@ -104,11 +95,19 @@ router.post("/patients", async (req, res, next) => {
   try {
     const schema = z.object({
       fullName: nameSchema,
-      email: emailSchema,
       phone: phoneSchema,
+      gender: z.enum(["male", "female", "other", "unknown"]).default("unknown"),
+      address: z.string().trim().max(255).optional().or(z.literal("")),
       password: passwordSchema.default("Password123!")
     });
     const data = schema.parse(req.body);
+    const duplicate = await User.findOne({ phone: data.phone });
+
+    if (duplicate) {
+      const err = new Error("Số điện thoại đã tồn tại.");
+      err.statusCode = 409;
+      throw err;
+    }
 
     const role = await Role.findOneAndUpdate(
       { roleName: "patient" },
@@ -123,13 +122,13 @@ router.post("/patients", async (req, res, next) => {
     );
     const patient = await User.create({
       fullName: data.fullName,
-      email: data.email,
+      email: `${data.phone.replace(/\D/g, "")}@phone.das.local`,
       phone: data.phone,
       roleRef: role._id,
       role: "patient",
       passwordHash: await hashPassword(data.password)
     });
-    await Patient.create({ user: patient._id });
+    await Patient.create({ user: patient._id, gender: data.gender, address: data.address || undefined });
 
     const object = patient.toObject();
     delete object.passwordHash;

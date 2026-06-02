@@ -6,7 +6,6 @@ import Notification from "../models/Notification.js";
 import Payment from "../models/Payment.js";
 import Review from "../models/Review.js";
 import TreatmentRecord from "../models/TreatmentRecord.js";
-import WaitlistEntry from "../models/WaitlistEntry.js";
 import { authorize, requireAuth } from "../middlewares/auth.js";
 import { noteSchema, objectIdSchema } from "../utils/validation.js";
 
@@ -15,7 +14,7 @@ const router = Router();
 router.use(requireAuth, authorize("patient"));
 
 router.get("/dashboard", async (req, res) => {
-  const [appointments, waitlist, records, invoices, notifications] = await Promise.all([
+  const [appointments, records, invoices, notifications] = await Promise.all([
     Appointment.find({ patient: req.user._id })
       .populate([
         { path: "createdBy", select: "fullName role" },
@@ -28,13 +27,6 @@ router.get("/dashboard", async (req, res) => {
       ])
       .sort({ startAt: 1 })
       .limit(120)
-      .lean(),
-    WaitlistEntry.find({ patient: req.user._id })
-      .populate("patient", "fullName email phone")
-      .populate("service", "name durationMinutes")
-      .populate("handledBy", "fullName")
-      .sort({ preferredDate: 1, createdAt: 1 })
-      .limit(80)
       .lean(),
     TreatmentRecord.find({ patient: req.user._id })
       .populate([
@@ -56,7 +48,7 @@ router.get("/dashboard", async (req, res) => {
     buildPatientNotifications(req.user._id)
   ]);
 
-  res.json({ appointments, waitlist, records, invoices, notifications });
+  res.json({ appointments, records, invoices, notifications });
 });
 
 router.get("/invoices", async (req, res) => {
@@ -81,6 +73,12 @@ router.patch("/invoices/:id/pay", async (req, res, next) => {
     invoice.status = "paid";
     invoice.paidAt = new Date();
     await invoice.save();
+    if (invoice.appointment) {
+      await Appointment.findOneAndUpdate(
+        { _id: invoice.appointment, patient: req.user._id },
+        { status: "completed", paymentStatus: "paid" }
+      );
+    }
     await Payment.create({
       invoice: invoice._id,
       amount: invoice.total,
@@ -145,42 +143,7 @@ router.post("/reviews", async (req, res, next) => {
 });
 
 router.get("/notifications", async (req, res) => {
-  const [appointments, waitlist, storedNotifications] = await Promise.all([
-    Appointment.find({
-      patient: req.user._id,
-      status: { $in: ["scheduled", "confirmed"] },
-      startAt: { $gte: new Date() }
-    })
-      .populate("service", "name")
-      .sort({ startAt: 1 })
-      .limit(5),
-    WaitlistEntry.find({ patient: req.user._id, status: { $in: ["waiting", "contacted"] } })
-      .populate("service", "name")
-      .sort({ createdAt: -1 })
-      .limit(5),
-    Notification.find({ user: req.user._id }).sort({ createdAt: -1 }).limit(10)
-  ]);
-
-  res.json({
-    notifications: [
-      ...storedNotifications.map((item) => ({
-        id: item._id,
-        type: "notification",
-        title: item.title,
-        message: `${item.title}: ${item.message}`,
-        isRead: item.isRead,
-        createdAt: item.createdAt
-      })),
-      ...appointments.map((item) => ({
-        type: "appointment",
-        message: `Lịch ${item.service?.name || "khám"} lúc ${item.startAt.toLocaleString()}`
-      })),
-      ...waitlist.map((item) => ({
-        type: "waitlist",
-        message: `Danh sách chờ ${item.service?.name || "dịch vụ"} đang ở trạng thái ${formatWaitlistStatus(item.status)}`
-      }))
-    ]
-  });
+  res.json({ notifications: await buildPatientNotifications(req.user._id) });
 });
 
 router.patch("/notifications/:id/read", async (req, res, next) => {
@@ -206,7 +169,7 @@ router.patch("/notifications/:id/read", async (req, res, next) => {
 export default router;
 
 async function buildPatientNotifications(userId) {
-  const [appointments, waitlist, storedNotifications] = await Promise.all([
+  const [appointments, storedNotifications] = await Promise.all([
     Appointment.find({
       patient: userId,
       status: { $in: ["scheduled", "confirmed"] },
@@ -214,11 +177,6 @@ async function buildPatientNotifications(userId) {
     })
       .populate("service", "name")
       .sort({ startAt: 1 })
-      .limit(5)
-      .lean(),
-    WaitlistEntry.find({ patient: userId, status: { $in: ["waiting", "contacted"] } })
-      .populate("service", "name")
-      .sort({ createdAt: -1 })
       .limit(5)
       .lean(),
     Notification.find({ user: userId }).sort({ createdAt: -1 }).limit(10).lean()
@@ -236,21 +194,6 @@ async function buildPatientNotifications(userId) {
     ...appointments.map((item) => ({
       type: "appointment",
       message: `Lịch ${item.service?.name || "khám"} lúc ${item.startAt.toLocaleString()}`
-    })),
-    ...waitlist.map((item) => ({
-      type: "waitlist",
-      message: `Danh sách chờ ${item.service?.name || "dịch vụ"} đang ở trạng thái ${formatWaitlistStatus(item.status)}`
     }))
   ];
-}
-
-function formatWaitlistStatus(status) {
-  const labels = {
-    waiting: "đang chờ",
-    contacted: "đã liên hệ",
-    booked: "đã đặt lịch",
-    expired: "quá hạn",
-    cancelled: "đã hủy"
-  };
-  return labels[status] || status;
 }
