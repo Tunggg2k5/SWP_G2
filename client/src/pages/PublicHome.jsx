@@ -1,31 +1,23 @@
 import {
-  Activity,
-  Bell,
   Building2,
   CalendarDays,
   CheckCircle2,
-  ClipboardList,
-  CreditCard,
+  Clock,
   DoorOpen,
-  FileText,
   LogIn,
+  MapPin,
   Phone,
-  ReceiptText,
-  Search,
   ShieldCheck,
   Stethoscope,
-  UserCog,
   UserPlus,
   UsersRound
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Feedback from "../components/Feedback.jsx";
-import { useAuth } from "../context/AuthContext.jsx";
 import { usePublicBootstrap } from "../hooks/usePublicBootstrap.js";
 import { api, getErrorMessage } from "../services/api.js";
 import { formatMoney, todayInput } from "../utils/format.js";
-import { actorUseCaseCoverage, erdCoverage, systemHighlights } from "../utils/useCaseCoverage.js";
 import { firstError, requireValue, validateDate, validateName, validateNote, validatePhone } from "../utils/validation.js";
 
 const branchMap = {
@@ -43,23 +35,49 @@ const branchMap = {
 const provinceOptions = Object.keys(branchMap);
 const needOptions = ["Tư vấn bác sĩ", "Trám răng", "Nhổ răng khôn", "Lấy cao răng", "Tẩy trắng răng"];
 
-const actorIcons = {
-  Guest: Search,
-  User: UserCog,
-  Patient: UsersRound,
-  Receptionist: ClipboardList,
-  "Clinical Staff": Stethoscope,
-  Dentist: Activity,
-  Nurse: ShieldCheck,
-  Admin: UserCog
-};
+const fallbackDentists = [
+  {
+    _id: "fallback-dentist-1",
+    fullName: "BS. Nguyễn Minh Anh",
+    specialty: "Chỉnh nha và phục hình thẩm mỹ",
+    description: "Theo dõi kế hoạch điều trị, tư vấn niềng răng và bọc răng sứ."
+  },
+  {
+    _id: "fallback-dentist-2",
+    fullName: "BS. Trần Hoàng Nam",
+    specialty: "Cấy ghép Implant",
+    description: "Phụ trách khám chuyên sâu, điều trị phục hồi răng mất và phẫu thuật miệng."
+  },
+  {
+    _id: "fallback-dentist-3",
+    fullName: "BS. Lê Thanh Vy",
+    specialty: "Nha khoa tổng quát",
+    description: "Khám ban đầu, tư vấn dịch vụ và chăm sóc răng miệng định kỳ."
+  }
+];
 
-const moduleIcons = [Building2, CalendarDays, DoorOpen, ReceiptText, Bell, FileText];
+function getClinicBranches() {
+  return Object.entries(branchMap).flatMap(([province, branches]) =>
+    branches.map((branch) => ({
+      id: `${province}-${branch}`,
+      province,
+      branch
+    }))
+  );
+}
+
+function getServiceSummary(service) {
+  if (!service) return "";
+  const duration = `${service.durationMinutes || 30} phút`;
+  const transition = `${service.transitionTime || 10} phút chuyển giao`;
+  return `${duration} + ${transition}`;
+}
 
 export default function PublicHome() {
-  const { user } = useAuth();
   const { services, dentists, rooms } = usePublicBootstrap();
   const minDate = useMemo(() => todayInput(), []);
+  const clinicBranches = useMemo(() => getClinicBranches(), []);
+  const dentistCards = dentists.length ? dentists.slice(0, 6) : fallbackDentists;
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [form, setForm] = useState({
@@ -74,6 +92,25 @@ export default function PublicHome() {
     preferredTime: "",
     note: ""
   });
+
+  const heroHighlights = [
+    {
+      label: "Thông tin phòng khám",
+      value: `${clinicBranches.length} chi nhánh, ${rooms.length || 5} phòng khám đang hoạt động`
+    },
+    {
+      label: "Profile bác sĩ",
+      value: `${dentists.length || fallbackDentists.length} bác sĩ theo chuyên môn nha khoa`
+    },
+    {
+      label: "Dịch vụ phòng khám",
+      value: `${services.length || 6} dịch vụ khám, điều trị và thẩm mỹ răng`
+    },
+    {
+      label: "Giờ làm việc",
+      value: "Thứ 2 - Thứ 7, 07:00-11:30 và 13:30-17:30"
+    }
+  ];
 
   function updateForm(field, value) {
     setForm((current) => {
@@ -154,9 +191,9 @@ export default function PublicHome() {
 
         <nav className="portal-nav-links" aria-label="Điều hướng public">
           <a href="#booking">Đặt lịch</a>
-          <a href="#actors">Actors</a>
+          <a href="#clinics">Phòng khám</a>
+          <a href="#dentists">Bác sĩ</a>
           <a href="#services">Dịch vụ</a>
-          <a href="#erd">ERD</a>
         </nav>
 
         <div className="portal-actions">
@@ -164,22 +201,14 @@ export default function PublicHome() {
             <Phone size={17} />
             1900 6899
           </a>
-          {user ? (
-            <Link className="button primary" to="/dashboard">
-              Dashboard
-            </Link>
-          ) : (
-            <>
-              <Link className="button ghost" to="/login">
-                <LogIn size={17} />
-                Đăng nhập
-              </Link>
-              <Link className="button primary" to="/register">
-                <UserPlus size={17} />
-                Tạo tài khoản
-              </Link>
-            </>
-          )}
+          <Link className="button ghost" to="/login">
+            <LogIn size={17} />
+            Đăng nhập
+          </Link>
+          <Link className="button primary" to="/register">
+            <UserPlus size={17} />
+            Tạo tài khoản
+          </Link>
         </div>
       </header>
 
@@ -187,14 +216,14 @@ export default function PublicHome() {
         <section className="portal-hero-band" id="booking">
           <div className="portal-copy">
             <p className="eyebrow">Dental Appointment System</p>
-            <h1>Quản lý đặt lịch phòng khám nha khoa</h1>
+            <h1>Thông tin và đặt lịch phòng khám nha khoa</h1>
             <p>
-              Hệ thống DAS hỗ trợ đặt lịch online, đặt lịch offline qua lễ tân, waitlist, điều trị, thanh toán, đánh giá,
-              thông báo và quản trị lịch nhân sự theo đúng tài liệu yêu cầu.
+              Khách hàng có thể xem thông tin phòng khám, hồ sơ bác sĩ, dịch vụ nha khoa và gửi yêu cầu tư vấn đặt lịch
+              trước khi tạo tài khoản bệnh nhân.
             </p>
 
             <div className="portal-stat-grid">
-              {systemHighlights.map((item) => (
+              {heroHighlights.map((item) => (
                 <article className="portal-stat" key={item.label}>
                   <strong>{item.label}</strong>
                   <span>{item.value}</span>
@@ -307,89 +336,100 @@ export default function PublicHome() {
           </form>
         </section>
 
-        <section className="portal-section" id="actors">
+        <section className="portal-section public-info-section" id="clinics">
           <div className="portal-section-heading">
-            <p className="eyebrow">Actors & Use Cases</p>
-            <h2>Coverage theo tài liệu DAS System Requirements</h2>
+            <p className="eyebrow">Thông tin phòng khám</p>
+            <h2>Hệ thống chi nhánh DAS</h2>
           </div>
-          <div className="actor-grid">
-            {actorUseCaseCoverage.map((actor) => {
-              const Icon = actorIcons[actor.actor] || CheckCircle2;
-              return (
-                <article className="actor-card" key={actor.actor}>
-                  <div className="actor-card-head">
-                    <Icon size={22} />
-                    <div>
-                      <h3>{actor.actor}</h3>
-                      <span>{actor.inherits}</span>
-                    </div>
-                  </div>
-                  <p>{actor.summary}</p>
-                  <ul className="usecase-list">
-                    {actor.useCases.map((item) => (
-                      <li key={item}>
-                        <CheckCircle2 size={15} />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </article>
-              );
-            })}
+          <div className="clinic-info-grid">
+            {clinicBranches.map((clinic) => (
+              <article className="clinic-info-card" key={clinic.id}>
+                <MapPin size={20} />
+                <div>
+                  <strong>{clinic.branch}</strong>
+                  <span>{clinic.province}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className="clinic-feature-row">
+            <article>
+              <DoorOpen size={20} />
+              <strong>{rooms.length || 5} phòng điều trị</strong>
+              <span>Phòng khám được quản lý trạng thái để hỗ trợ đặt lịch chính xác.</span>
+            </article>
+            <article>
+              <Clock size={20} />
+              <strong>Lịch làm việc rõ ràng</strong>
+              <span>Thứ 2 - Thứ 7, ca sáng 07:00-11:30 và ca chiều 13:30-17:30.</span>
+            </article>
+            <article>
+              <ShieldCheck size={20} />
+              <strong>Hồ sơ bảo mật</strong>
+              <span>Thông tin tư vấn và lịch hẹn được xử lý theo vai trò người dùng.</span>
+            </article>
           </div>
         </section>
 
-        <section className="portal-section split-section" id="services">
+        <section className="portal-section public-info-section" id="dentists">
           <div className="portal-section-heading">
-            <p className="eyebrow">Dịch vụ, bác sĩ, phòng khám</p>
-            <h2>Dữ liệu public từ MongoDB Atlas</h2>
+            <p className="eyebrow">Profile bác sĩ</p>
+            <h2>Đội ngũ bác sĩ nha khoa</h2>
+          </div>
+          <div className="dentist-profile-grid">
+            {dentistCards.map((dentist) => (
+              <article className="dentist-profile-card" key={dentist._id}>
+                <div className="dentist-avatar">
+                  <UsersRound size={24} />
+                </div>
+                <div>
+                  <h3>{dentist.fullName}</h3>
+                  <p>{dentist.specialty || "Nha khoa tổng quát"}</p>
+                </div>
+                <ul>
+                  <li>
+                    <CheckCircle2 size={15} />
+                    <span>{dentist.description || "Khám, tư vấn và theo dõi kế hoạch điều trị cho bệnh nhân."}</span>
+                  </li>
+                  <li>
+                    <CheckCircle2 size={15} />
+                    <span>Lịch khám được điều phối theo phòng và dịch vụ phù hợp.</span>
+                  </li>
+                </ul>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="portal-section public-info-section" id="services">
+          <div className="portal-section-heading">
+            <p className="eyebrow">Thông tin dịch vụ phòng khám</p>
+            <h2>Dịch vụ nha khoa đang phục vụ</h2>
           </div>
 
-          <div className="service-grid">
+          <div className="service-grid public-service-grid">
             {services.slice(0, 6).map((service) => (
               <article className="service-card" key={service._id}>
+                <Stethoscope size={20} />
                 <strong>{service.name}</strong>
-                <span>{service.durationMinutes} phút + {service.transitionTime || 10} phút chuyển giao</span>
+                <span>{getServiceSummary(service)}</span>
                 <small>{service.requiresPrepayment ? formatMoney(service.price) : "Tư vấn chi phí sau khám"}</small>
               </article>
             ))}
           </div>
 
-          <div className="resource-rail">
-            <article>
-              <UsersRound size={20} />
-              <strong>{dentists.length || 8} bác sĩ</strong>
-              <span>Hồ sơ bác sĩ và chuyên môn phục vụ View Dentist Profiles.</span>
-            </article>
-            <article>
-              <DoorOpen size={20} />
-              <strong>{rooms.length || 5} phòng khám</strong>
-              <span>Trạng thái phòng hỗ trợ đặt lịch động và cập nhật phòng.</span>
-            </article>
-            <article>
-              <CreditCard size={20} />
-              <strong>Invoice & Payment</strong>
-              <span>Thanh toán khi check-in hoặc online theo hóa đơn bệnh nhân.</span>
-            </article>
-          </div>
-        </section>
-
-        <section className="portal-section" id="erd">
-          <div className="portal-section-heading">
-            <p className="eyebrow">ERD coverage</p>
-            <h2>Các nhóm bảng chính đã được ánh xạ trong dự án</h2>
-          </div>
-          <div className="erd-grid">
-            {erdCoverage.map((item, index) => {
-              const Icon = moduleIcons[index % moduleIcons.length];
-              return (
-                <article key={item}>
-                  <Icon size={18} />
-                  <span>{item}</span>
+          {!services.length && (
+            <div className="service-grid public-service-grid">
+              {needOptions.slice(1).map((service) => (
+                <article className="service-card" key={service}>
+                  <Stethoscope size={20} />
+                  <strong>{service}</strong>
+                  <span>Thời lượng được tư vấn theo tình trạng răng miệng.</span>
+                  <small>Liên hệ lễ tân để nhận chi phí dự kiến</small>
                 </article>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
       </main>
     </div>

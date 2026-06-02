@@ -30,7 +30,7 @@ export function canUsePatientBooking(role) {
 }
 
 export function canUsePublicLookup(role) {
-  return !role || role === "patient";
+  return !role;
 }
 
 export function isClinicalRole(role) {

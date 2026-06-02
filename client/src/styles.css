@@ -2489,6 +2489,131 @@ th {
   color: var(--primary);
 }
 
+.public-info-section {
+  scroll-margin-top: 110px;
+}
+
+.clinic-info-grid,
+.dentist-profile-grid,
+.clinic-feature-row {
+  display: grid;
+  gap: 14px;
+}
+
+.clinic-info-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.clinic-info-card,
+.clinic-feature-row article,
+.dentist-profile-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow-soft);
+}
+
+.clinic-info-card {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-height: 86px;
+  padding: 16px;
+}
+
+.clinic-info-card svg,
+.clinic-feature-row svg,
+.service-card svg {
+  color: var(--primary);
+}
+
+.clinic-info-card strong,
+.clinic-feature-row strong,
+.dentist-profile-card h3 {
+  display: block;
+  color: #17313c;
+}
+
+.clinic-info-card span,
+.clinic-feature-row span,
+.dentist-profile-card p {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+}
+
+.clinic-feature-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 14px;
+}
+
+.clinic-feature-row article {
+  min-height: 128px;
+  padding: 18px;
+}
+
+.clinic-feature-row svg {
+  margin-bottom: 10px;
+}
+
+.dentist-profile-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dentist-profile-card {
+  display: grid;
+  gap: 14px;
+  min-height: 250px;
+  padding: 18px;
+}
+
+.dentist-avatar {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius);
+  color: white;
+  background: linear-gradient(135deg, var(--primary), #1a9a77);
+}
+
+.dentist-profile-card h3 {
+  margin: 0;
+  font-size: 1.08rem;
+}
+
+.dentist-profile-card p {
+  margin-bottom: 0;
+  font-weight: 720;
+}
+
+.dentist-profile-card ul {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dentist-profile-card li {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 8px;
+  color: #536879;
+  font-size: 0.91rem;
+}
+
+.dentist-profile-card li svg {
+  margin-top: 2px;
+  color: var(--success);
+}
+
+.public-service-grid .service-card {
+  display: grid;
+  gap: 9px;
+}
+
 @media (max-width: 1180px) {
   .portal-nav,
   .app-topnav {
@@ -2522,7 +2647,10 @@ th {
 
   .portal-stat-grid,
   .service-grid,
-  .erd-grid {
+  .erd-grid,
+  .clinic-info-grid,
+  .dentist-profile-grid,
+  .clinic-feature-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -2595,7 +2723,10 @@ th {
   .actor-grid,
   .service-grid,
   .split-section,
-  .erd-grid {
+  .erd-grid,
+  .clinic-info-grid,
+  .dentist-profile-grid,
+  .clinic-feature-row {
     grid-template-columns: 1fr;
   }
 

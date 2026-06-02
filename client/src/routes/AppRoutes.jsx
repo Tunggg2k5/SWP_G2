@@ -9,7 +9,7 @@ import PatientDashboard from "../pages/PatientDashboard.jsx";
 import ProfilePage from "../pages/ProfilePage.jsx";
 import PublicHome from "../pages/PublicHome.jsx";
 import ReceptionistDashboard from "../pages/ReceptionistDashboard.jsx";
-import { canUsePatientBooking, canUsePublicLookup, isClinicalRole } from "../utils/roles.js";
+import { canUsePatientBooking, isClinicalRole } from "../utils/roles.js";
 
 function DashboardRouter() {
   const { user } = useAuth();
@@ -25,7 +25,7 @@ function DashboardRouter() {
 function PublicLookupRoute() {
   const { user } = useAuth();
 
-  if (!canUsePublicLookup(user?.role)) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to="/dashboard" replace />;
   return <PublicHome />;
 }
 
