@@ -35,6 +35,16 @@ const forgotPasswordSchema = z.object({
   phone: phoneSchema
 });
 
+const avatarSchema = z
+  .string()
+  .trim()
+  .max(750000)
+  .refine((value) => !value || value.startsWith("data:image/") || /^https?:\/\//i.test(value), {
+    message: "Avatar phải là URL ảnh hoặc ảnh upload hợp lệ."
+  })
+  .optional()
+  .or(z.literal(""));
+
 function serializeUser(user) {
   const object = user.toObject ? user.toObject() : user;
   delete object.passwordHash;
@@ -130,7 +140,7 @@ router.patch("/me", requireAuth, async (req, res, next) => {
       phone: phoneSchema.optional(),
       gender: z.enum(["male", "female", "other", "unknown"]).optional(),
       address: z.string().trim().max(255).optional().or(z.literal("")),
-      avatarUrl: z.string().url().optional().or(z.literal("")),
+      avatarUrl: avatarSchema,
       bio: z.string().trim().max(1000).optional()
     });
     const data = schema.parse(req.body);
@@ -172,6 +182,26 @@ router.patch("/me", requireAuth, async (req, res, next) => {
 router.get("/notifications", requireAuth, async (req, res) => {
   const notifications = await Notification.find({ user: req.user._id }).sort({ createdAt: -1 }).limit(50);
   res.json({ notifications });
+});
+
+router.patch("/notifications/:id/read", requireAuth, async (req, res, next) => {
+  try {
+    const notification = await Notification.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id },
+      { isRead: true },
+      { new: true }
+    );
+
+    if (!notification) {
+      const err = new Error("Không tìm thấy thông báo.");
+      err.statusCode = 404;
+      throw err;
+    }
+
+    res.json({ notification });
+  } catch (error) {
+    next(error);
+  }
 });
 
 router.post("/forgot-password", async (req, res, next) => {

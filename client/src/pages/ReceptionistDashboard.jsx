@@ -1,19 +1,12 @@
-import { CalendarPlus, CheckCheck, ClipboardList, DoorOpen, PhoneCall, Search, UserPlus } from "lucide-react";
+import { CalendarPlus, CheckCheck, ClipboardList, DoorOpen, PhoneCall, Search } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import EmptyState from "../components/EmptyState.jsx";
 import Feedback from "../components/Feedback.jsx";
-import FeatureTabs from "../components/FeatureTabs.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
 import { api, getErrorMessage } from "../services/api.js";
-import { formatDateTime, todayInput } from "../utils/format.js";
+import { formatDateTime, formatTime, todayInput } from "../utils/format.js";
 import { firstError, requireValue, validateDate, validateName, validateNote, validatePhone } from "../utils/validation.js";
-
-const receptionistFeatures = [
-  { id: "appointments", label: "Lịch hẹn", icon: ClipboardList },
-  { id: "booking", label: "Đặt lịch hộ", icon: CalendarPlus },
-  { id: "consultations", label: "Tư vấn", icon: PhoneCall },
-  { id: "rooms", label: "Phòng khám", icon: DoorOpen }
-];
 
 const appointmentStatusOptions = [
   { value: "all", label: "Tất cả trạng thái" },
@@ -26,6 +19,8 @@ const appointmentStatusOptions = [
   { value: "no_show", label: "Vắng mặt" }
 ];
 
+const statusActionOptions = appointmentStatusOptions.filter((option) => option.value !== "all");
+
 const genderOptions = [
   { value: "unknown", label: "Chưa chọn" },
   { value: "male", label: "Nam" },
@@ -34,6 +29,7 @@ const genderOptions = [
 ];
 
 export default function ReceptionistDashboard() {
+  const location = useLocation();
   const [activeFeature, setActiveFeature] = useState("appointments");
   const [currentTime, setCurrentTime] = useState(new Date());
   const [date, setDate] = useState(todayInput());
@@ -50,6 +46,9 @@ export default function ReceptionistDashboard() {
   const [newPatient, setNewPatient] = useState({ fullName: "", phone: "", gender: "unknown", address: "" });
   const [booking, setBooking] = useState({ patientId: "", serviceId: "", note: "" });
   const [rescheduleDates, setRescheduleDates] = useState({});
+  const [rescheduleSlots, setRescheduleSlots] = useState({});
+  const [rescheduleSlotKeys, setRescheduleSlotKeys] = useState({});
+  const [statusActions, setStatusActions] = useState({});
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -57,7 +56,7 @@ export default function ReceptionistDashboard() {
   async function load() {
     setLoading(true);
     try {
-      const res = await api.get("/reception/dashboard", { params: patientSearch ? { date, q: patientSearch } : { date } });
+      const res = await api.get("/reception/dashboard", { params: { date } });
 
       setAppointments(res.data.appointments);
       setPatients(res.data.patients);
@@ -81,6 +80,13 @@ export default function ReceptionistDashboard() {
   }, [date]);
 
   useEffect(() => {
+    const tab = new URLSearchParams(location.search).get("tab");
+    if (["appointments", "booking", "consultations"].includes(tab)) {
+      setActiveFeature(tab);
+    }
+  }, [location.search]);
+
+  useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     const refresh = setInterval(load, 30000);
     return () => {
@@ -88,11 +94,6 @@ export default function ReceptionistDashboard() {
       clearInterval(refresh);
     };
   }, [date, patientSearch]);
-
-  async function searchPatients(event) {
-    event.preventDefault();
-    await load();
-  }
 
   async function createBooking(event) {
     event.preventDefault();
@@ -148,6 +149,16 @@ export default function ReceptionistDashboard() {
     }
   }
 
+  async function applyStatusAction(appointment) {
+    const value = statusActions[appointment._id] || appointment.status;
+    if (value === "called") {
+      await confirmAppointmentCall(appointment._id);
+      return;
+    }
+
+    await updateAppointment(appointment._id, value);
+  }
+
   async function confirmAppointmentCall(id) {
     if (!window.confirm("Xác nhận đã gọi bệnh nhân?")) return;
 
@@ -174,18 +185,44 @@ export default function ReceptionistDashboard() {
 
   async function rescheduleAppointment(appointment) {
     const nextDate = rescheduleDates[appointment._id];
+    const slotKey = rescheduleSlotKeys[appointment._id];
+    const slot = (rescheduleSlots[appointment._id] || []).find((item) => buildSlotKey(item) === slotKey);
     if (!nextDate) {
       setError("Chọn ngày mới trước khi đổi lịch.");
       return;
     }
+    if (!slot) {
+      setError("Chọn slot trống trước khi đổi lịch.");
+      return;
+    }
 
-    if (!window.confirm("Xác nhận đổi lịch bệnh nhân sang slot trống đầu tiên của ngày mới?")) return;
+    if (!window.confirm(`Xác nhận đổi lịch sang ${formatTime(slot.startAt)} tại ${slot.room.name}?`)) return;
 
     try {
-      await api.patch(`/appointments/${appointment._id}/reschedule`, { date: nextDate });
-      setMessage("Đã đổi lịch bệnh nhân sang slot trống đầu tiên.");
+      await api.patch(`/appointments/${appointment._id}/reschedule`, { date: nextDate, startAt: slot.startAt, roomId: slot.room._id });
+      setMessage("Đã đổi lịch bệnh nhân sang slot trống đã chọn.");
       setRescheduleDates((current) => ({ ...current, [appointment._id]: "" }));
+      setRescheduleSlots((current) => ({ ...current, [appointment._id]: [] }));
+      setRescheduleSlotKeys((current) => ({ ...current, [appointment._id]: "" }));
       load();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  }
+
+  async function loadRescheduleSlots(appointment) {
+    const nextDate = rescheduleDates[appointment._id];
+    if (!nextDate) {
+      setError("Chọn ngày mới để xem slot trống.");
+      return;
+    }
+
+    try {
+      const res = await api.get("/availability", { params: { serviceId: appointment.service?._id, date: nextDate } });
+      const slots = res.data.slots || [];
+      setRescheduleSlots((current) => ({ ...current, [appointment._id]: slots }));
+      setRescheduleSlotKeys((current) => ({ ...current, [appointment._id]: slots[0] ? buildSlotKey(slots[0]) : "" }));
+      if (!slots.length) setMessage("Ngày này chưa có slot trống phù hợp.");
     } catch (err) {
       setError(getErrorMessage(err));
     }
@@ -236,13 +273,18 @@ export default function ReceptionistDashboard() {
   });
   const confirmationNeededCount = appointments.filter((appointment) => needsConfirmationCall(appointment)).length;
   const checkedInCount = appointments.filter((appointment) => appointment.status === "checked_in").length;
+  const patientKeyword = patientSearch.trim().toLowerCase();
+  const selectablePatients = patients.filter((patient) => {
+    if (!patientKeyword) return true;
+    return [patient.fullName, patient.phone].filter(Boolean).join(" ").toLowerCase().includes(patientKeyword);
+  });
 
   return (
     <div className="page-grid">
       <Feedback error={error} message={message} onClear={() => { setError(""); setMessage(""); }} />
-      <FeatureTabs items={receptionistFeatures} active={activeFeature} onChange={setActiveFeature} />
 
       {activeFeature === "appointments" && (
+        <>
         <section className="panel">
           <div className="section-title">
             <ClipboardList size={20} />
@@ -300,8 +342,6 @@ export default function ReceptionistDashboard() {
           ) : filteredAppointments.length ? (
             <div className="appointment-list">
               {filteredAppointments.map((appointment) => {
-                const isFuture = new Date(appointment.startAt) > currentTime;
-                const isClosed = ["cancelled", "completed", "no_show"].includes(appointment.status);
                 return (
                   <article className="appointment-card" key={appointment._id}>
                     <div>
@@ -319,27 +359,47 @@ export default function ReceptionistDashboard() {
                         {formatConfirmationText(appointment)}
                       </span>
                     </div>
-                    <StatusBadge value={appointment.status} />
                     <div className="row-actions">
-                      {needsConfirmationCall(appointment) && (
-                        <button className="button small" onClick={() => confirmAppointmentCall(appointment._id)}>
-                          Đã gọi
-                        </button>
-                      )}
-                      <button className="button small" disabled={isFuture || isClosed} onClick={() => checkIn(appointment._id)}>
-                        Ghi nhận đến
-                      </button>
-                      <button className="button small" disabled={isFuture || isClosed} onClick={() => updateAppointment(appointment._id, "no_show")}>
-                        Vắng mặt
+                      <select
+                        value={statusActions[appointment._id] || appointment.status}
+                        onChange={(e) => setStatusActions((current) => ({ ...current, [appointment._id]: e.target.value }))}
+                      >
+                        {statusActionOptions.map((option) => (
+                          <option value={option.value} key={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <button className="button small" onClick={() => applyStatusAction(appointment)}>
+                        Cập nhật
                       </button>
                       <input
                         type="date"
                         min={todayInput()}
                         value={rescheduleDates[appointment._id] || ""}
-                        onChange={(e) => setRescheduleDates((current) => ({ ...current, [appointment._id]: e.target.value }))}
+                        onChange={(e) => {
+                          setRescheduleDates((current) => ({ ...current, [appointment._id]: e.target.value }));
+                          setRescheduleSlots((current) => ({ ...current, [appointment._id]: [] }));
+                          setRescheduleSlotKeys((current) => ({ ...current, [appointment._id]: "" }));
+                        }}
                       />
-                      <button className="button small" disabled={isClosed} onClick={() => rescheduleAppointment(appointment)}>
-                        Đổi lịch
+                      <button className="button small" onClick={() => loadRescheduleSlots(appointment)}>
+                        Xem slot
+                      </button>
+                      {(rescheduleSlots[appointment._id] || []).length > 0 && (
+                        <select
+                          value={rescheduleSlotKeys[appointment._id] || ""}
+                          onChange={(e) => setRescheduleSlotKeys((current) => ({ ...current, [appointment._id]: e.target.value }))}
+                        >
+                          {(rescheduleSlots[appointment._id] || []).map((slot) => (
+                            <option value={buildSlotKey(slot)} key={buildSlotKey(slot)}>
+                              {formatTime(slot.startAt)} - {slot.room.name} - {slot.dentist?.fullName}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                      <button className="button small" onClick={() => rescheduleAppointment(appointment)}>
+                        Đổi lịch slot
                       </button>
                     </div>
                   </article>
@@ -350,6 +410,33 @@ export default function ReceptionistDashboard() {
             <EmptyState title="Không có lịch phù hợp" text="Thử đổi bộ lọc hoặc từ khóa tìm kiếm." />
           )}
         </section>
+          <section className="panel room-status-panel">
+            <div className="section-title">
+              <DoorOpen size={20} />
+              <h2>Trạng thái phòng trong lịch hẹn</h2>
+            </div>
+            <div className="room-grid">
+              {rooms.map((room) => (
+                <article className="room-card" key={room._id}>
+                  <h4>{room.name}</h4>
+                  <p>{room.assignedDentist?.fullName}</p>
+                  <StatusBadge value={room.status} />
+                  <div className="row-actions">
+                    <button className="button small" onClick={() => updateRoomStatus(room._id, "in_use")}>
+                      Đang dùng
+                    </button>
+                    <button className="button small" onClick={() => updateRoomStatus(room._id, "cleaning")}>
+                      Vệ sinh
+                    </button>
+                    <button className="button small" onClick={() => updateRoomStatus(room._id, "available")}>
+                      Sẵn sàng
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        </>
       )}
 
       {activeFeature === "booking" && (
@@ -358,14 +445,6 @@ export default function ReceptionistDashboard() {
             <CalendarPlus size={20} />
             <h2>Đặt lịch hộ bệnh nhân</h2>
           </div>
-          <form className="toolbar-row" onSubmit={searchPatients}>
-            <label className="field inline-field grow-field">
-              <span>Tìm tài khoản bệnh nhân</span>
-              <input value={patientSearch} onChange={(e) => setPatientSearch(e.target.value)} placeholder="Tên hoặc số điện thoại" />
-            </label>
-            <button className="button ghost">Đặt lịch hộ</button>
-          </form>
-
           <form className="stack" onSubmit={createBooking}>
             <div className="segmented-control">
               <label>
@@ -379,16 +458,22 @@ export default function ReceptionistDashboard() {
             </div>
 
             {accountMode === "existing" ? (
-              <label className="field">
-                <span>Bệnh nhân</span>
-                <select value={booking.patientId} onChange={(e) => setBooking({ ...booking, patientId: e.target.value })} required>
-                  {patients.map((patient) => (
-                    <option key={patient._id} value={patient._id}>
-                      {patient.fullName} - {patient.phone}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <>
+                <label className="field">
+                  <span>Tìm tài khoản bệnh nhân</span>
+                  <input value={patientSearch} onChange={(e) => setPatientSearch(e.target.value)} placeholder="Tên hoặc số điện thoại" />
+                </label>
+                <label className="field">
+                  <span>Bệnh nhân</span>
+                  <select value={booking.patientId} onChange={(e) => setBooking({ ...booking, patientId: e.target.value })} required>
+                    {selectablePatients.map((patient) => (
+                      <option key={patient._id} value={patient._id}>
+                        {patient.fullName} - {patient.phone}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </>
             ) : (
               <div className="form-grid">
                 <label className="field">
@@ -434,7 +519,7 @@ export default function ReceptionistDashboard() {
               <span>Ghi chú</span>
               <input value={booking.note} onChange={(e) => setBooking({ ...booking, note: e.target.value })} maxLength={1000} />
             </label>
-            <button className="button primary">Đặt lịch tại quầy</button>
+            <button className="button primary booking-submit-final">Đặt lịch hộ</button>
           </form>
         </section>
       )}
@@ -467,36 +552,6 @@ export default function ReceptionistDashboard() {
         </section>
       )}
 
-      {activeFeature === "rooms" && (
-        <section className="panel">
-          <div className="section-title">
-            <DoorOpen size={20} />
-            <h2>Trạng thái phòng</h2>
-          </div>
-          <div className="room-grid">
-            {loading ? (
-              <EmptyState title="Đang tải phòng khám" text="Hệ thống đang lấy dữ liệu mới nhất." />
-            ) : rooms.map((room) => (
-              <article className="room-card" key={room._id}>
-                <h4>{room.name}</h4>
-                <p>{room.assignedDentist?.fullName}</p>
-                <StatusBadge value={room.status} />
-                <div className="row-actions">
-                  <button className="button small" onClick={() => updateRoomStatus(room._id, "in_use")}>
-                    Đang dùng
-                  </button>
-                  <button className="button small" onClick={() => updateRoomStatus(room._id, "cleaning")}>
-                    Vệ sinh
-                  </button>
-                  <button className="button small" onClick={() => updateRoomStatus(room._id, "available")}>
-                    Sẵn sàng
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   );
 }
@@ -528,4 +583,8 @@ function formatConfirmationText(appointment) {
   const deadline = new Date(new Date(appointment.startAt).getTime() - 12 * 60 * 60 * 1000);
   const isLate = Date.now() > deadline.getTime();
   return `${isLate ? "Quá hạn gọi xác nhận" : "Hạn gọi xác nhận"}: ${formatDateTime(deadline)}.`;
+}
+
+function buildSlotKey(slot) {
+  return `${slot.startAt}|${slot.room?._id}`;
 }

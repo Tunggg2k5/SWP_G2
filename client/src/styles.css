@@ -2034,6 +2034,208 @@ th {
   gap: 8px;
 }
 
+.role-patient .top-nav-list {
+  display: none;
+}
+
+.top-notification-button,
+.top-avatar-button {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: white;
+  color: var(--primary-dark);
+  box-shadow: 0 8px 22px rgba(27, 69, 86, 0.08);
+}
+
+.top-notification-button {
+  width: 42px;
+  height: 42px;
+}
+
+.top-notification-button span {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--secondary);
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.top-avatar-button {
+  width: 46px;
+  height: 46px;
+  overflow: hidden;
+  font-weight: 900;
+}
+
+.top-avatar-button img,
+.account-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.notification-popover,
+.account-popover {
+  position: fixed;
+  top: 70px;
+  right: clamp(14px, 3vw, 34px);
+  z-index: 70;
+  width: min(420px, calc(100vw - 28px));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: white;
+  box-shadow: 0 24px 70px rgba(12, 38, 50, 0.22);
+}
+
+.notification-popover {
+  border-color: #f3adc9;
+}
+
+.notification-popover-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 10px;
+}
+
+.notification-popover-head .eyebrow {
+  color: #d12772;
+}
+
+.notification-popover-list {
+  display: grid;
+  gap: 10px;
+  max-height: min(520px, calc(100vh - 150px));
+  overflow-y: auto;
+  padding: 0 16px 16px;
+}
+
+.notification-card {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 12px;
+  width: 100%;
+  border: 1px solid #f3b7cf;
+  border-radius: var(--radius);
+  padding: 12px;
+  background: #fff8fb;
+  text-align: left;
+}
+
+.notification-card.read {
+  background: #fff;
+  opacity: 0.74;
+}
+
+.notification-avatar {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius);
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  font-weight: 900;
+}
+
+.notification-card span:last-child {
+  display: grid;
+  gap: 3px;
+}
+
+.notification-card small {
+  color: var(--muted);
+}
+
+.notification-card em {
+  color: #a01855;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.notification-empty {
+  padding: 24px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.account-popover {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+}
+
+.account-profile-card {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.account-avatar {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  font-weight: 900;
+}
+
+.account-profile-card small {
+  grid-column: 2;
+  color: var(--muted);
+}
+
+.account-popover > button {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  border: 0;
+  border-radius: var(--radius);
+  padding: 9px 10px;
+  background: transparent;
+  color: var(--text);
+  font-weight: 820;
+  text-align: left;
+}
+
+.account-popover > button:hover {
+  background: var(--surface-2);
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(6, 24, 32, 0.44);
+}
+
+.account-modal {
+  width: min(520px, 100%);
+}
+
 .top-nav-content {
   width: min(100%, 1480px);
   margin: 0 auto;
@@ -2653,6 +2855,28 @@ th {
   box-shadow: var(--shadow);
 }
 
+.patient-sidebar-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+}
+
+.patient-sidebar-tools strong {
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.patient-dashboard-shell.collapsed .patient-sidebar-tools {
+  grid-template-columns: 1fr;
+  justify-items: center;
+}
+
+.patient-dashboard-shell.collapsed .patient-sidebar-tools strong {
+  display: none;
+}
+
 .patient-sidebar-head {
   display: grid;
   grid-template-columns: 72px minmax(0, 1fr) 40px;
@@ -2811,6 +3035,46 @@ th {
   min-width: 0;
 }
 
+.patient-guest-hero {
+  min-height: min(620px, calc(100vh - 130px));
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.patient-guest-inner {
+  width: min(1160px, 100%);
+}
+
+.patient-home-panel {
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.patient-home-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.patient-home-summary span,
+.patient-next-box {
+  display: grid;
+  gap: 3px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.patient-home-summary strong {
+  color: var(--text);
+  font-size: 1.35rem;
+}
+
+.patient-next-box strong {
+  color: var(--text);
+}
+
 .patient-home-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -2844,6 +3108,16 @@ th {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.room-status-panel {
+  margin-top: 16px;
+  box-shadow: none;
+}
+
+.booking-submit-final {
+  justify-self: end;
+  min-width: 180px;
 }
 
 .patient-appointment-card {

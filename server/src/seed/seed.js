@@ -307,7 +307,7 @@ async function run() {
     }))
   );
 
-  const workingDates = nextWorkingDates(12, 1);
+  const workingDates = nextWorkingDates(12, 0);
   await StaffSchedule.create(
     workingDates.flatMap((dateText) => {
       const workDate = new Date(`${dateText}T00:00:00`);
