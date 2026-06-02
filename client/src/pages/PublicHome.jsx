@@ -1,5 +1,6 @@
 import {
   Activity,
+  Bell,
   Building2,
   CalendarDays,
   CheckCircle2,
