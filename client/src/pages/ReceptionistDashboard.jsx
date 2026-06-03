@@ -43,7 +43,7 @@ export default function ReceptionistDashboard() {
   const [roomFilter, setRoomFilter] = useState("all");
   const [patientSearch, setPatientSearch] = useState("");
   const [accountMode, setAccountMode] = useState("existing");
-  const [newPatient, setNewPatient] = useState({ fullName: "", phone: "", gender: "unknown", address: "" });
+  const [newPatient, setNewPatient] = useState({ fullName: "", phone: "", gender: "unknown", address: "", createAccount: false });
   const [booking, setBooking] = useState({ patientId: "", serviceId: "", note: "" });
   const [rescheduleDates, setRescheduleDates] = useState({});
   const [rescheduleSlots, setRescheduleSlots] = useState({});
@@ -120,7 +120,7 @@ export default function ReceptionistDashboard() {
       if (accountMode === "new") {
         const res = await api.post("/reception/patients", newPatient);
         patientId = res.data.patient._id;
-        setNewPatient({ fullName: "", phone: "", gender: "unknown", address: "" });
+        setNewPatient({ fullName: "", phone: "", gender: "unknown", address: "", createAccount: false });
       }
 
       await api.post("/appointments", {
@@ -150,6 +150,11 @@ export default function ReceptionistDashboard() {
   }
 
   async function applyStatusAction(appointment) {
+    if (isAppointmentLocked(appointment, currentTime)) {
+      setError("Lịch hẹn đã hủy, vắng mặt hoặc quá thời gian check-in nên không thể cập nhật.");
+      return;
+    }
+
     const value = statusActions[appointment._id] || appointment.status;
     if (value === "called") {
       await confirmAppointmentCall(appointment._id);
@@ -342,8 +347,9 @@ export default function ReceptionistDashboard() {
           ) : filteredAppointments.length ? (
             <div className="appointment-list">
               {filteredAppointments.map((appointment) => {
+                const locked = isAppointmentLocked(appointment, currentTime);
                 return (
-                  <article className="appointment-card" key={appointment._id}>
+                  <article className={`appointment-card ${locked ? "locked" : ""}`} key={appointment._id}>
                     <div>
                       <h4>{appointment.patient?.fullName}</h4>
                       <p>
@@ -358,10 +364,13 @@ export default function ReceptionistDashboard() {
                       <span className={`mini confirmation-note ${needsConfirmationCall(appointment) ? "warning-text" : ""}`}>
                         {formatConfirmationText(appointment)}
                       </span>
+                      {locked && <span className="mini locked-note">{lockedAppointmentText(appointment, currentTime)}</span>}
                     </div>
                     <div className="row-actions">
+                      <StatusBadge value={appointment.status} />
                       <select
                         value={statusActions[appointment._id] || appointment.status}
+                        disabled={locked}
                         onChange={(e) => setStatusActions((current) => ({ ...current, [appointment._id]: e.target.value }))}
                       >
                         {statusActionOptions.map((option) => (
@@ -370,25 +379,27 @@ export default function ReceptionistDashboard() {
                           </option>
                         ))}
                       </select>
-                      <button className="button small" onClick={() => applyStatusAction(appointment)}>
+                      <button className="button small" disabled={locked} onClick={() => applyStatusAction(appointment)}>
                         Cập nhật
                       </button>
                       <input
                         type="date"
                         min={todayInput()}
                         value={rescheduleDates[appointment._id] || ""}
+                        disabled={locked}
                         onChange={(e) => {
                           setRescheduleDates((current) => ({ ...current, [appointment._id]: e.target.value }));
                           setRescheduleSlots((current) => ({ ...current, [appointment._id]: [] }));
                           setRescheduleSlotKeys((current) => ({ ...current, [appointment._id]: "" }));
                         }}
                       />
-                      <button className="button small" onClick={() => loadRescheduleSlots(appointment)}>
+                      <button className="button small" disabled={locked} onClick={() => loadRescheduleSlots(appointment)}>
                         Xem slot
                       </button>
                       {(rescheduleSlots[appointment._id] || []).length > 0 && (
                         <select
                           value={rescheduleSlotKeys[appointment._id] || ""}
+                          disabled={locked}
                           onChange={(e) => setRescheduleSlotKeys((current) => ({ ...current, [appointment._id]: e.target.value }))}
                         >
                           {(rescheduleSlots[appointment._id] || []).map((slot) => (
@@ -398,7 +409,7 @@ export default function ReceptionistDashboard() {
                           ))}
                         </select>
                       )}
-                      <button className="button small" onClick={() => rescheduleAppointment(appointment)}>
+                      <button className="button small" disabled={locked} onClick={() => rescheduleAppointment(appointment)}>
                         Đổi lịch slot
                       </button>
                     </div>
@@ -498,6 +509,14 @@ export default function ReceptionistDashboard() {
                   <span>Address</span>
                   <input value={newPatient.address} onChange={(e) => setNewPatient({ ...newPatient, address: e.target.value })} />
                 </label>
+                <label className="checkbox-field account-create-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={newPatient.createAccount}
+                    onChange={(e) => setNewPatient({ ...newPatient, createAccount: e.target.checked })}
+                  />
+                  <span>Tạo tài khoản mới cho bệnh nhân từ thông tin trên</span>
+                </label>
               </div>
             )}
 
@@ -568,6 +587,26 @@ function ReceptionMetric({ icon: Icon, label, value }) {
 
 function needsConfirmationCall(appointment) {
   return ["scheduled", "confirmed"].includes(appointment.status) && !appointment.confirmationCalledAt;
+}
+
+function isAppointmentLocked(appointment, currentTime = new Date()) {
+  return ["cancelled", "no_show"].includes(appointment.status) || isPastCheckInDeadline(appointment, currentTime);
+}
+
+function isPastCheckInDeadline(appointment, currentTime) {
+  return (
+    ["scheduled", "confirmed"].includes(appointment.status) &&
+    !appointment.checkedInAt &&
+    appointment.arrivalAt &&
+    new Date(appointment.arrivalAt).getTime() < currentTime.getTime()
+  );
+}
+
+function lockedAppointmentText(appointment, currentTime) {
+  if (appointment.status === "cancelled") return "Lịch đã hủy nên không thể chỉnh thêm trạng thái.";
+  if (appointment.status === "no_show") return "Lịch đã vắng mặt nên không thể chỉnh thêm trạng thái.";
+  if (isPastCheckInDeadline(appointment, currentTime)) return "Đã quá thời gian check-in, hệ thống sẽ chuyển thành Vắng mặt.";
+  return "Lịch đang bị khóa cập nhật.";
 }
 
 function formatConfirmationText(appointment) {

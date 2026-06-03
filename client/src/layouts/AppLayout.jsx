@@ -31,6 +31,13 @@ const receptionistTabs = [
   { id: "consultations", label: "Tư vấn", icon: PhoneCall }
 ];
 
+const genderOptions = [
+  { value: "unknown", label: "Chưa chọn" },
+  { value: "male", label: "Nam" },
+  { value: "female", label: "Nữ" },
+  { value: "other", label: "Other" }
+];
+
 function navForRole(role) {
   if (role === "patient") return [];
   if (role === "receptionist") return receptionistTabs.map((item) => ({ ...item, to: `/dashboard?tab=${item.id}`, isTab: true }));
@@ -60,7 +67,7 @@ export default function AppLayout() {
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
-  const [profileForm, setProfileForm] = useState({ fullName: "", phone: "", bio: "" });
+  const [profileForm, setProfileForm] = useState({ fullName: "", phone: "", gender: "unknown", address: "", bio: "" });
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "" });
   const [feedback, setFeedback] = useState({ message: "", error: "" });
   const fileInputRef = useRef(null);
@@ -74,10 +81,12 @@ export default function AppLayout() {
     setProfileForm({
       fullName: user.fullName || "",
       phone: user.phone || "",
+      gender: user.gender || "unknown",
+      address: user.address || "",
       bio: user.bio || ""
     });
     loadNotifications();
-  }, [user?._id]);
+  }, [user?._id, user?.fullName, user?.phone, user?.gender, user?.address, user?.bio]);
 
   if (location.pathname === "/" || location.pathname === "/dat-lich-hen") {
     return <Outlet />;
@@ -295,6 +304,22 @@ export default function AppLayout() {
               <span>Số điện thoại</span>
               <input type="tel" value={profileForm.phone} onChange={(event) => setProfileForm({ ...profileForm, phone: event.target.value })} required />
             </label>
+            <div className="form-grid account-form-grid">
+              <label className="field">
+                <span>Giới tính</span>
+                <select value={profileForm.gender} onChange={(event) => setProfileForm({ ...profileForm, gender: event.target.value })}>
+                  {genderOptions.map((option) => (
+                    <option value={option.value} key={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>Địa chỉ</span>
+                <input value={profileForm.address} onChange={(event) => setProfileForm({ ...profileForm, address: event.target.value })} maxLength={255} />
+              </label>
+            </div>
             <label className="field">
               <span>Ghi chú hồ sơ</span>
               <textarea value={profileForm.bio} onChange={(event) => setProfileForm({ ...profileForm, bio: event.target.value })} rows="3" maxLength={1000} />

@@ -25,8 +25,35 @@ const router = Router();
 
 router.use(requireAuth, authorize("receptionist", "admin"));
 
+function phoneEmail(phone) {
+  return `${phone.replace(/\D/g, "")}@phone.das.local`;
+}
+
+async function autoMarkOverdueNoShows(dateText) {
+  const query = {
+    status: { $in: ["scheduled", "confirmed"] },
+    checkedInAt: { $exists: false },
+    cancelledAt: { $exists: false },
+    arrivalAt: { $lt: new Date() }
+  };
+
+  if (dateText) {
+    query.startAt = {
+      $gte: startOfLocalDay(dateText),
+      $lte: endOfLocalDay(dateText)
+    };
+  }
+
+  await Appointment.updateMany(query, {
+    $set: {
+      status: "no_show",
+      receptionistNote: "Hệ thống tự chuyển vắng mặt vì đã quá thời gian check-in."
+    }
+  });
+}
+
 router.get("/dashboard", async (req, res) => {
-  const patientFilter = { role: "patient" };
+  const patientFilter = { role: "patient", status: "active" };
   if (req.query.q) {
     const q = String(req.query.q).trim().slice(0, 80).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     patientFilter.$or = [
@@ -43,6 +70,8 @@ router.get("/dashboard", async (req, res) => {
       $lte: endOfLocalDay(req.query.date)
     };
   }
+
+  await autoMarkOverdueNoShows(req.query.date);
 
   const [appointments, patients, services, consultations, rooms] = await Promise.all([
     Appointment.find(appointmentQuery)
@@ -77,7 +106,7 @@ router.get("/dashboard", async (req, res) => {
 });
 
 router.get("/patients", async (req, res) => {
-  const filter = { role: "patient" };
+  const filter = { role: "patient", status: "active" };
   if (req.query.q) {
     const q = String(req.query.q).trim().slice(0, 80).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     filter.$or = [
@@ -98,12 +127,36 @@ router.post("/patients", async (req, res, next) => {
       phone: phoneSchema,
       gender: z.enum(["male", "female", "other", "unknown"]).default("unknown"),
       address: z.string().trim().max(255).optional().or(z.literal("")),
+      createAccount: z.boolean().default(true),
       password: passwordSchema.default("Password123!")
     });
     const data = schema.parse(req.body);
     const duplicate = await User.findOne({ phone: data.phone });
 
     if (duplicate) {
+      if (data.createAccount && duplicate.status !== "active" && duplicate.role === "patient") {
+        duplicate.fullName = data.fullName;
+        duplicate.gender = data.gender;
+        duplicate.address = data.address || undefined;
+        duplicate.passwordHash = await hashPassword(data.password);
+        duplicate.status = "active";
+        await duplicate.save();
+        await Patient.findOneAndUpdate(
+          { user: duplicate._id },
+          { gender: data.gender, address: data.address || undefined },
+          { upsert: true }
+        );
+        const object = duplicate.toObject();
+        delete object.passwordHash;
+        return res.status(200).json({ patient: object });
+      }
+
+      if (!data.createAccount && duplicate.role === "patient" && duplicate.status !== "active") {
+        const object = duplicate.toObject();
+        delete object.passwordHash;
+        return res.status(200).json({ patient: object });
+      }
+
       const err = new Error("Số điện thoại đã tồn tại.");
       err.statusCode = 409;
       throw err;
@@ -122,10 +175,13 @@ router.post("/patients", async (req, res, next) => {
     );
     const patient = await User.create({
       fullName: data.fullName,
-      email: `${data.phone.replace(/\D/g, "")}@phone.das.local`,
+      email: phoneEmail(data.phone),
       phone: data.phone,
+      gender: data.gender,
+      address: data.address || undefined,
       roleRef: role._id,
       role: "patient",
+      status: data.createAccount ? "active" : "inactive",
       passwordHash: await hashPassword(data.password)
     });
     await Patient.create({ user: patient._id, gender: data.gender, address: data.address || undefined });

@@ -85,6 +85,8 @@ router.post("/register", async (req, res, next) => {
       fullName: data.fullName || `Bệnh nhân ${data.phone}`,
       email: phoneEmail(data.phone),
       phone: data.phone,
+      gender: data.gender,
+      address: data.address || undefined,
       passwordHash: await hashPassword(data.password),
       roleRef: patientRole._id,
       role: "patient"
@@ -154,16 +156,14 @@ router.patch("/me", requireAuth, async (req, res, next) => {
       }
     }
 
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
-      {
-        fullName: data.fullName,
-        phone: data.phone,
-        avatarUrl: data.avatarUrl || undefined,
-        bio: data.bio
-      },
-      { new: true }
-    ).select("-passwordHash");
+    const update = {};
+    for (const key of ["fullName", "phone", "gender", "bio"]) {
+      if (data[key] !== undefined) update[key] = data[key];
+    }
+    if (data.address !== undefined) update.address = data.address || undefined;
+    if (data.avatarUrl !== undefined) update.avatarUrl = data.avatarUrl || undefined;
+
+    const user = await User.findByIdAndUpdate(req.user._id, update, { new: true }).select("-passwordHash");
 
     if (user.role === "patient" && (data.gender || data.address !== undefined)) {
       await Patient.findOneAndUpdate(

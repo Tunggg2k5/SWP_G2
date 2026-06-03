@@ -22,6 +22,12 @@ const userSchema = new mongoose.Schema(
     avatar: { type: String, trim: true },
     specialty: { type: String, trim: true },
     bio: { type: String, trim: true },
+    gender: {
+      type: String,
+      enum: ["male", "female", "other", "unknown"],
+      default: "unknown"
+    },
+    address: { type: String, trim: true },
     yearsOfExperience: { type: Number, default: 0 },
     licenseNo: { type: String, trim: true },
     avatarUrl: { type: String, trim: true }

@@ -1,13 +1,10 @@
 import {
-  Bell,
   CalendarClock,
-  CheckCircle2,
+  CalendarPlus,
   FileText,
   Home,
   Menu,
-  ReceiptText,
   RefreshCw,
-  Star,
   X,
   XCircle
 } from "lucide-react";
@@ -22,6 +19,7 @@ import { formatDateTime, formatMoney, todayInput } from "../utils/format.js";
 
 const patientNav = [
   { id: "home", label: "Trang chủ", icon: Home },
+  { id: "booking", label: "Đặt lịch", icon: CalendarPlus, to: "/booking" },
   { id: "appointments", label: "Lịch hẹn", icon: CalendarClock },
   { id: "records", label: "Hồ sơ điều trị", icon: FileText }
 ];
@@ -30,7 +28,7 @@ export default function PatientDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [activeFeature, setActiveFeature] = useState("home");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [appointments, setAppointments] = useState([]);
   const [records, setRecords] = useState([]);
   const [invoices, setInvoices] = useState([]);
@@ -150,28 +148,38 @@ export default function PatientDashboard() {
     <div className={`patient-dashboard-shell ${sidebarOpen ? "" : "collapsed"}`}>
       <Feedback error={error} message={message} onClear={() => { setError(""); setMessage(""); }} />
 
-      <aside className="patient-sidebar">
-        <div className="patient-sidebar-tools">
-          <strong>DAS</strong>
-          <button className="icon-button" onClick={() => setSidebarOpen((value) => !value)} title="Đóng mở menu">
-            {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
-          </button>
-        </div>
+      {!sidebarOpen && (
+        <button className="patient-sidebar-fab" onClick={() => setSidebarOpen(true)} title="Mở menu">
+          <Menu size={22} />
+        </button>
+      )}
 
-        <nav className="patient-side-nav">
-          {patientNav.map((item) => {
-            const Icon = item.icon;
-            const notificationCount = item.id === "notifications" ? unreadNotifications.length : 0;
-            return (
-              <button className={activeFeature === item.id ? "active" : ""} key={item.id} onClick={() => setActiveFeature(item.id)}>
-                <Icon size={19} />
-                <span>{item.label}</span>
-                {notificationCount > 0 && <em>{notificationCount}</em>}
-              </button>
-            );
-          })}
-        </nav>
-      </aside>
+      {sidebarOpen && (
+        <aside className="patient-sidebar">
+          <div className="patient-sidebar-tools">
+            <strong>DAS</strong>
+            <button className="icon-button" onClick={() => setSidebarOpen(false)} title="Đóng menu">
+              <X size={18} />
+            </button>
+          </div>
+
+          <nav className="patient-side-nav">
+            {patientNav.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  className={activeFeature === item.id ? "active" : ""}
+                  key={item.id}
+                  onClick={() => (item.to ? navigate(item.to) : setActiveFeature(item.id))}
+                >
+                  <Icon size={19} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
+      )}
 
       <main className="patient-dashboard-content">
         {activeFeature === "home" && (

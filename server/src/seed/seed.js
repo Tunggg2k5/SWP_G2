@@ -208,6 +208,8 @@ async function run() {
       phone: "0911000001",
       role: "patient",
       roleRef: roles.patient._id,
+      gender: "unknown",
+      address: "Quận 1",
       passwordHash
     },
     {
@@ -216,6 +218,8 @@ async function run() {
       phone: "0911000002",
       role: "patient",
       roleRef: roles.patient._id,
+      gender: "unknown",
+      address: "Quận 3",
       passwordHash
     }
   ]);
@@ -307,7 +311,7 @@ async function run() {
     }))
   );
 
-  const workingDates = nextWorkingDates(12, 0);
+  const workingDates = nextWorkingDates(12, 1);
   await StaffSchedule.create(
     workingDates.flatMap((dateText) => {
       const workDate = new Date(`${dateText}T00:00:00`);

@@ -21,6 +21,7 @@ import {
 } from "../services/schedulingService.js";
 
 const router = Router();
+const LOCKED_APPOINTMENT_STATUSES = new Set(["cancelled", "no_show"]);
 
 const populateAppointment = [
   { path: "patient", select: "fullName email phone" },
@@ -47,6 +48,30 @@ function canAccessAppointment(user, appointment) {
   if (user.role === "dentist") return appointment.dentist.toString() === user._id.toString();
   if (user.role === "nurse") return appointment.nurse?.toString() === user._id.toString();
   return false;
+}
+
+function assertAppointmentCanChange(appointment) {
+  if (LOCKED_APPOINTMENT_STATUSES.has(appointment.status)) {
+    const err = new Error("Lịch hẹn đã hủy hoặc vắng mặt nên không thể cập nhật thêm.");
+    err.statusCode = 409;
+    throw err;
+  }
+}
+
+async function assertNotPastCheckIn(appointment) {
+  if (
+    ["scheduled", "confirmed"].includes(appointment.status) &&
+    !appointment.checkedInAt &&
+    appointment.arrivalAt &&
+    appointment.arrivalAt < new Date()
+  ) {
+    appointment.status = "no_show";
+    appointment.receptionistNote = "Hệ thống tự chuyển vắng mặt vì đã quá thời gian check-in.";
+    await appointment.save();
+    const err = new Error("Lịch hẹn đã quá thời gian check-in và được chuyển sang Vắng mặt.");
+    err.statusCode = 409;
+    throw err;
+  }
 }
 
 router.use(requireAuth);
@@ -144,6 +169,9 @@ router.patch("/:id/reschedule", async (req, res, next) => {
       throw err;
     }
 
+    assertAppointmentCanChange(appointment);
+    await assertNotPastCheckIn(appointment);
+
     const updated = await rescheduleAppointmentFromSlot({
       appointment,
       serviceId: data.serviceId,
@@ -177,6 +205,9 @@ router.patch("/:id/cancel", async (req, res, next) => {
       throw err;
     }
 
+    assertAppointmentCanChange(appointment);
+    await assertNotPastCheckIn(appointment);
+
     assertTwelveHourRule(appointment.startAt);
     appointment.status = "cancelled";
     appointment.cancelledAt = new Date();
@@ -207,6 +238,9 @@ router.patch("/:id/status", authorize("receptionist", "admin", "nurse"), async (
       throw err;
     }
 
+    assertAppointmentCanChange(appointment);
+    await assertNotPastCheckIn(appointment);
+
     appointment.status = data.status;
     appointment.receptionistNote = data.note ?? appointment.receptionistNote;
     if (data.status === "checked_in") {
@@ -234,7 +268,10 @@ router.patch("/:id/confirmation-call", authorize("receptionist", "admin"), async
       throw err;
     }
 
-    if (["cancelled", "completed", "no_show"].includes(appointment.status)) {
+    assertAppointmentCanChange(appointment);
+    await assertNotPastCheckIn(appointment);
+
+    if (appointment.status === "completed") {
       const err = new Error("Lịch hẹn này không còn cần gọi xác nhận.");
       err.statusCode = 409;
       throw err;
@@ -273,6 +310,9 @@ router.patch("/:id/check-in", authorize("receptionist", "admin"), async (req, re
       err.statusCode = 404;
       throw err;
     }
+
+    assertAppointmentCanChange(appointment);
+    await assertNotPastCheckIn(appointment);
 
     appointment.status = "checked_in";
     appointment.checkedInAt = new Date();

@@ -68,6 +68,13 @@ button:disabled {
   opacity: 0.62;
 }
 
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
@@ -1307,6 +1314,27 @@ textarea {
   border-left: 4px solid var(--info);
   background: linear-gradient(180deg, #ffffff 0%, #f9fcff 100%);
   box-shadow: 0 1px 0 rgba(40, 54, 42, 0.02);
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.appointment-card.locked {
+  border-left-color: #88939b;
+  background: linear-gradient(180deg, #f5f7f8 0%, #eef3f5 100%);
+}
+
+.appointment-card.locked .row-actions {
+  opacity: 0.82;
+}
+
+.locked-note {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 6px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #fff4d8;
+  color: #91610c;
+  font-weight: 850;
 }
 
 .appointment-meta-stack {
@@ -1321,6 +1349,10 @@ textarea {
 .record-card:hover {
   border-color: var(--line-strong);
   box-shadow: var(--shadow-soft);
+}
+
+.appointment-card:hover {
+  transform: translateY(-1px);
 }
 
 .row-actions {
@@ -2233,7 +2265,11 @@ th {
 }
 
 .account-modal {
-  width: min(520px, 100%);
+  width: min(640px, 100%);
+}
+
+.account-form-grid {
+  margin-bottom: 0;
 }
 
 .top-nav-content {
@@ -2485,6 +2521,29 @@ th {
   border-color: var(--primary);
   box-shadow: inset 0 0 0 3px white;
   background: var(--primary);
+}
+
+.checkbox-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--text);
+  font-weight: 760;
+}
+
+.checkbox-field input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.account-create-checkbox {
+  grid-column: 1 / -1;
 }
 
 .portal-form-grid {
@@ -2838,7 +2897,29 @@ th {
 }
 
 .patient-dashboard-shell.collapsed {
-  grid-template-columns: 86px minmax(0, 1fr);
+  grid-template-columns: 64px minmax(0, 1fr);
+}
+
+.patient-sidebar-fab {
+  position: sticky;
+  top: 96px;
+  align-self: start;
+  display: inline-grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: var(--radius);
+  background: #111719;
+  color: #9ff3ff;
+  box-shadow: 0 16px 38px rgba(4, 28, 34, 0.2);
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.patient-sidebar-fab:hover {
+  border-color: #79ddeb;
+  transform: translateY(-2px);
+  box-shadow: 0 20px 46px rgba(4, 28, 34, 0.28);
 }
 
 .patient-sidebar {
@@ -2853,6 +2934,7 @@ th {
   background: linear-gradient(180deg, #0d8790, #0f6b73);
   color: white;
   box-shadow: var(--shadow);
+  animation: patient-sidebar-in 0.18s ease-out;
 }
 
 .patient-sidebar-tools {
@@ -2868,25 +2950,11 @@ th {
   font-weight: 900;
 }
 
-.patient-dashboard-shell.collapsed .patient-sidebar-tools {
-  grid-template-columns: 1fr;
-  justify-items: center;
-}
-
-.patient-dashboard-shell.collapsed .patient-sidebar-tools strong {
-  display: none;
-}
-
 .patient-sidebar-head {
   display: grid;
   grid-template-columns: 72px minmax(0, 1fr) 40px;
   gap: 12px;
   align-items: center;
-}
-
-.patient-dashboard-shell.collapsed .patient-sidebar-head {
-  grid-template-columns: 1fr;
-  justify-items: center;
 }
 
 .patient-avatar-wrap,
@@ -2998,12 +3066,14 @@ th {
   color: rgba(255, 255, 255, 0.82);
   font-weight: 830;
   text-align: left;
+  transition: transform 0.16s ease, background 0.16s ease, color 0.16s ease;
 }
 
 .patient-side-nav button.active,
 .patient-side-nav button:hover {
   background: white;
   color: var(--primary-dark);
+  transform: translateX(2px);
 }
 
 .patient-side-nav em {
@@ -3016,17 +3086,6 @@ th {
   color: white;
   font-style: normal;
   font-size: 0.78rem;
-}
-
-.patient-dashboard-shell.collapsed .patient-sidebar-name,
-.patient-dashboard-shell.collapsed .patient-side-nav span,
-.patient-dashboard-shell.collapsed .patient-side-nav em {
-  display: none;
-}
-
-.patient-dashboard-shell.collapsed .patient-side-nav button {
-  grid-template-columns: 1fr;
-  justify-items: center;
 }
 
 .patient-dashboard-content {
@@ -3046,7 +3105,10 @@ th {
 }
 
 .patient-home-panel {
-  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(18, 22, 23, 0.94);
+  color: #f4f7f7;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.24);
 }
 
 .patient-home-summary {
@@ -3059,20 +3121,35 @@ th {
 .patient-next-box {
   display: grid;
   gap: 3px;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: var(--radius);
   padding: 12px;
-  background: var(--surface-2);
-  color: var(--muted);
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(255, 255, 255, 0.68);
 }
 
 .patient-home-summary strong {
-  color: var(--text);
+  color: #f4f7f7;
   font-size: 1.35rem;
 }
 
 .patient-next-box strong {
-  color: var(--text);
+  color: #f4f7f7;
+}
+
+.patient-home-panel .section-title h2,
+.patient-home-panel .section-title svg {
+  color: #f4f7f7;
+}
+
+.patient-home-panel .empty-state {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.025);
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.patient-home-panel .empty-state strong {
+  color: #f4f7f7;
 }
 
 .patient-home-hero {
@@ -3175,6 +3252,18 @@ th {
 .profile-avatar-preview span {
   color: var(--text);
   font-weight: 850;
+}
+
+@keyframes patient-sidebar-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @media (max-width: 1180px) {
@@ -3311,15 +3400,8 @@ th {
     min-height: auto;
   }
 
-  .patient-dashboard-shell.collapsed .patient-sidebar-name,
-  .patient-dashboard-shell.collapsed .patient-side-nav span,
-  .patient-dashboard-shell.collapsed .patient-side-nav em {
-    display: block;
-  }
-
-  .patient-dashboard-shell.collapsed .patient-side-nav button {
-    grid-template-columns: 22px minmax(0, 1fr) auto;
-    justify-items: stretch;
+  .patient-sidebar-fab {
+    position: static;
   }
 
   .patient-home-hero,
