@@ -11,67 +11,111 @@ Full-stack project based on `DAS System Requirements (1).docx`.
 
 ## Main implemented scope
 
-- Guest service browsing, dentist profiles, clinic room availability, consultation request
-- Patient booking with dynamic service duration, 10-minute turnover buffer, arrival-time rule, cancel/reschedule 12-hour rule, waitlist
-- Receptionist appointment board, offline booking support, check-in/no-show/status updates, waitlist handling, consultation management
-- Dentist/Nurse clinical schedule and treatment record updates
-- Admin overview, service/room/account management surfaces, revenue and appointment statistics
+- Guest clinic/service/dentist browsing and patient account registration
+- Patient online booking by service, dentist and available slot; appointment history, cancel/reschedule before 24 hours
+- Receptionist appointment confirmation/rejection, assisted booking, check-in, no-show handling and payment recording
+- Dentist work schedule, patient list and treatment result recording
+- Nurse clinical support, vital signs, treatment notes and room status updates
+- Admin/Manager master data, dashboard, revenue report and patient statistics
 
 ## Functional modules by role
 
 Guest:
 
-- View dental services
+- View clinic information, working hours and dental services
 - View dentist profiles
-- View clinic room information
-- Create consultation request
-- Register or login before booking
+- Register patient account
+- Login or request password reset
 
 Patient:
 
-- Appointment management: book, view, reschedule, cancel
-- Waitlist management
+- Book appointment by service, dentist and available slot
+- View appointment history and treatment history
+- Reschedule or cancel appointment before 24 hours
 - Invoice and payment
-- Treatment record, treatment plan, and prescription viewing
 - Review and rating
 - Notifications
 
 Receptionist:
 
 - Daily appointment board
-- Appointment status update, check-in, no-show handling
+- Confirm or reject appointment
+- Check-in patient, cancel/reschedule on behalf of patient, no-show handling
 - Create/search patient account
 - Offline booking for patients
 - Consultation request management
-- Waitlist follow-up
 - Clinic room status overview
 
-Clinical staff:
+Dentist:
 
-- Work schedule
-- Patient appointment information
-- Vital signs, diagnosis, treatment note, treatment result
-- Treatment plan and prescription updates
-- Room status update for nurses
+- Manage or view weekly work schedule
+- View assigned patient list and treatment history
+- Record diagnosis, treatment result, treatment plan and prescription
 
-Admin:
+Nurse:
 
-- Revenue, patient, no-show, and rating statistics
+- View assigned work schedule
+- Record vital signs and clinical support notes
+- Support treatment plan updates
+- Update clinic room status
+
+Admin/Manager:
+
 - Account management
 - Dental service management
+- Dentist and nurse profile management
 - Clinic room management
+- Clinic information and working-hour management
+- Appointment dashboard, revenue report and patient statistics
 
-## Inheritance model
+## Use case baseline
 
-The requirements document defines actor inheritance separately from the ERD profile-table relationships. The project now represents both:
+The project follows **Đề Tài A: Hệ Thống Đặt Lịch Phòng Khám Nha Khoa** with 30 baseline use cases:
+
+| ID | Workflow | Actor | Use case |
+| --- | --- | --- | --- |
+| UCA01 | WF0 Authentication & Authorization | Guest | Register Patient |
+| UCA02 | WF0 Authentication & Authorization | User | Login / Logout |
+| UCA03 | WF0 Authentication & Authorization | User | Forgot Password |
+| UCA04 | WF0 Authentication & Authorization | User | Profile Management |
+| UCA05 | WF0 Authentication & Authorization | User | Notification Management |
+| UCA06 | WF1 Master Data Setup | Guest | View Clinic Info & Services |
+| UCA07 | WF1 Master Data Setup | Admin | Manage Dental Services |
+| UCA08 | WF1 Master Data Setup | Admin | Manage Dentist Profiles |
+| UCA09 | WF1 Master Data Setup | Admin | Manage Nurse Profiles |
+| UCA10 | WF1 Master Data Setup | Admin | Manage Clinic Info |
+| UCA11 | WF1 Master Data Setup | Admin | Manage Clinic Rooms |
+| UCA12 | WF1 Master Data Setup | Dentist / Nurse | Manage Work Schedule |
+| UCA13 | WF2 Core Transaction Flow | Patient | Book Appointment |
+| UCA14 | WF2 Core Transaction Flow | Patient | View Appointment History |
+| UCA15 | WF2 Core Transaction Flow | Receptionist | Confirm Appointment |
+| UCA16 | WF2 Core Transaction Flow | Receptionist | Reject Appointment |
+| UCA17 | WF2 Core Transaction Flow | Receptionist | Check-in Patient |
+| UCA18 | WF2 Core Transaction Flow | Dentist | Record Treatment Result |
+| UCA19 | WF2 Core Transaction Flow | Nurse | Record Vital Signs |
+| UCA20 | WF2 Core Transaction Flow | Dentist / Nurse | Manage Treatment Plan |
+| UCA21 | WF2 Core Transaction Flow | Dentist | Prescribe Medicine |
+| UCA22 | WF2 Core Transaction Flow | Patient / Receptionist | Cancel Appointment before 24h |
+| UCA23 | WF2 Core Transaction Flow | Patient / Receptionist | Reschedule Appointment |
+| UCA24 | WF2 Core Transaction Flow | Receptionist | Handle No-Show |
+| UCA25 | WF2 Core Transaction Flow | Receptionist | Process Invoice / Payment |
+| UCA26 | WF2 Core Transaction Flow | Patient | Review Service |
+| UCA27 | WF3 Dashboard & Reporting | Receptionist / Admin | Appointment Dashboard |
+| UCA28 | WF3 Dashboard & Reporting | Admin | Revenue Report |
+| UCA29 | WF3 Dashboard & Reporting | Admin | Patient Statistics |
+| UCA30 | WF3 Dashboard & Reporting | Admin | Service & Staff Statistics |
+
+## Role model
+
+The project keeps a shared `User` account and role-specific profile collections for authorization and actor behavior:
 
 - `User` is the base account entity.
-- `Patient` inherits from `User` and stores patient-specific fields in `patients`.
-- `Receptionist` inherits from `User` and stores receptionist-specific fields in `receptionists`.
-- `Clinical Staff` inherits from `User` and is represented as an abstract role.
-- `Dentist` inherits from `Clinical Staff`, then `User`, and stores dentist-specific fields in `dentists`.
-- `Nurse` inherits from `Clinical Staff`, then `User`, and stores nurse-specific fields in `nurses`.
-- `Admin` inherits from `User` and stores admin-specific fields in `adminprofiles`.
+- `Patient` stores patient-specific fields in `patients`.
+- `Receptionist` stores receptionist-specific fields in `receptionists`.
+- `Clinical Staff` is an internal group for dentist and nurse permissions.
+- `Dentist` stores dentist-specific fields in `dentists`.
+- `Nurse` stores nurse-specific fields in `nurses`.
+- `Admin/Manager` stores admin-specific fields in `adminprofiles`.
 
 At runtime, users include an `inheritanceChain` field, for example:
 
@@ -83,13 +127,13 @@ At runtime, users include an `inheritanceChain` field, for example:
 }
 ```
 
-The `roles` collection also stores abstract roles (`user`, `clinical_staff`) and concrete roles (`patient`, `receptionist`, `dentist`, `nurse`, `admin`) so the inheritance hierarchy is visible in the database and admin UI.
+The `roles` collection stores abstract permission groups (`user`, `clinical_staff`) and concrete roles (`patient`, `receptionist`, `dentist`, `nurse`, `admin`) so authorization remains explicit in the database and admin UI.
 
 ## ERD coverage
 
-The backend includes the 25 ERD collections from `DAS ERD - Final Version.docx`, plus abstract-role metadata in the `roles` collection:
+The backend includes the ERD collections from `DAS ERD - Final Version.docx`, plus abstract-role metadata in the `roles` collection:
 
-`roles`, `users`, `patients`, `receptionists`, `dentists`, `nurses`, `adminprofiles`, `clinicworkinghours`, `timeslots`, `staffschedules`, `dentalservices`, `dentistservices`, `clinicrooms`, `roomstatuses`, `appointmentslots`, `appointments`, `waitlistentries`, `consultationrequests`, `treatmentrecords`, `treatmentplans`, `prescriptions`, `invoices`, `payments`, `reviews`, and `notifications`.
+`roles`, `users`, `patients`, `receptionists`, `dentists`, `nurses`, `adminprofiles`, `clinicworkinghours`, `timeslots`, `staffschedules`, `dentalservices`, `dentistservices`, `clinicrooms`, `roomstatuses`, `appointmentslots`, `appointments`, `consultationrequests`, `treatmentrecords`, `treatmentplans`, `prescriptions`, `invoices`, `payments`, `reviews`, and `notifications`.
 
 Some API responses keep the original frontend-friendly shape, while the database now stores the ERD support collections and references needed for role profiles, staff schedules, room status history, appointment slots, treatment plans, prescriptions, payments, and notifications.
 
@@ -200,20 +244,22 @@ This creates the demo users, rooms, services, schedules, role hierarchy, and ERD
 
 All seeded users use password `Password123!`.
 
-- Admin: `admin@das.local`
-- Receptionist: `receptionist1@das.local`
-- Dentist: `dentist1@das.local`
-- Nurse: `nurse1@das.local`
-- Patient: `patient1@das.local`
+- Admin: `0900000000`
+- Receptionist: `0901000001`
+- Dentist: `0902000001`
+- Nurse: `0903000001`
+- Patient: `0911000001`
 
 ## Scheduling rules from the document
 
 - Clinic works Monday to Saturday, closed Sunday.
 - Morning session: 07:00-11:30.
 - Afternoon session: 13:30-17:30.
-- Service duration is dynamic by selected service, not fixed hourly slots.
-- Each appointment reserves a 10-minute turnover buffer after the service.
+- Booking flow: Patient selects service, dentist, available slot, then confirms.
+- Available appointment start times are generated on a 30-minute slot grid inside working sessions.
+- Service duration is still respected by selected service, and each appointment reserves a 10-minute turnover buffer after the service.
 - Patients with appointments before 08:00 arrive at the displayed time.
 - Patients with appointments at or after 08:00 arrive 1 hour early.
 - Receptionist confirmation/contact deadline is 12 hours.
-- Patient cancel/reschedule is allowed only at least 12 hours before appointment time.
+- Patient or receptionist cancel/reschedule is allowed only at least 24 hours before appointment time.
+- No-show is handled when the patient has not checked in after the arrival/check-in time.

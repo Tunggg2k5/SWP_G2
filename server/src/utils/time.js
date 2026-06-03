@@ -1,4 +1,5 @@
 export const WORKING_DAYS = [1, 2, 3, 4, 5, 6];
+export const APPOINTMENT_SLOT_MINUTES = 30;
 export const TURNOVER_MINUTES = 10;
 export const CLINIC_UTC_OFFSET_MINUTES = 7 * 60;
 
@@ -92,11 +93,11 @@ export function calculateArrivalAt(startAt) {
   return addMinutes(startAt, -60);
 }
 
-export function assertTwelveHourRule(startAt) {
+export function assertTwentyFourHourRule(startAt) {
   const now = new Date();
   const hours = (startAt.getTime() - now.getTime()) / 3_600_000;
-  if (hours < 12) {
-    const err = new Error("Chỉ được hủy hoặc đổi lịch trước giờ khám ít nhất 12 giờ.");
+  if (hours < 24) {
+    const err = new Error("Chỉ được hủy hoặc đổi lịch trước giờ khám ít nhất 24 giờ.");
     err.statusCode = 400;
     throw err;
   }

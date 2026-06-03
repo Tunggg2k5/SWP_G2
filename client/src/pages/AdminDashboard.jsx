@@ -332,7 +332,7 @@ export default function AdminDashboard() {
           <section className="panel">
             <div className="section-title">
               <ShieldCheck size={20} />
-              <h2>Quan hệ kế thừa vai trò</h2>
+              <h2>Vai trò hệ thống</h2>
             </div>
             {loading ? (
               <EmptyState title="Đang tải phân quyền" text="Hệ thống đang lấy dữ liệu mới nhất." />
@@ -342,7 +342,7 @@ export default function AdminDashboard() {
                 <article className="inheritance-card" key={role.role}>
                   <strong>{role.label}</strong>
                   <span>{formatInheritanceChain(role.inheritanceChain, role.label)}</span>
-                  <small>{role.abstract ? "Vai trò nền" : `Hồ sơ: ${formatProfileCollection(role.profileCollection)}`}</small>
+                  <small>{role.abstract ? "Nhóm phân quyền" : `Hồ sơ: ${formatProfileCollection(role.profileCollection)}`}</small>
                 </article>
               ))}
             </div>
@@ -404,7 +404,7 @@ export default function AdminDashboard() {
                       <th>Tên</th>
                       <th>Email</th>
                       <th>Vai trò</th>
-                      <th>Kế thừa</th>
+                      <th>Phân quyền</th>
                       <th>Trạng thái</th>
                       <th></th>
                     </tr>

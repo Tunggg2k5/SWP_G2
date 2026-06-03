@@ -7,7 +7,7 @@ import Invoice from "../models/Invoice.js";
 import Notification from "../models/Notification.js";
 import Payment from "../models/Payment.js";
 import { authorize, requireAuth } from "../middlewares/auth.js";
-import { assertTwelveHourRule, endOfLocalDay, startOfLocalDay } from "../utils/time.js";
+import { assertTwentyFourHourRule, endOfLocalDay, startOfLocalDay } from "../utils/time.js";
 import {
   futureDateInputSchema,
   noteSchema,
@@ -208,7 +208,7 @@ router.patch("/:id/cancel", async (req, res, next) => {
     assertAppointmentCanChange(appointment);
     await assertNotPastCheckIn(appointment);
 
-    assertTwelveHourRule(appointment.startAt);
+    assertTwentyFourHourRule(appointment.startAt);
     appointment.status = "cancelled";
     appointment.cancelledAt = new Date();
     appointment.cancellationReason = data.reason;

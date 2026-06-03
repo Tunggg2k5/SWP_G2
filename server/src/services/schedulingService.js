@@ -6,9 +6,10 @@ import DentistService from "../models/DentistService.js";
 import User from "../models/User.js";
 import {
   WORKING_SESSIONS,
+  APPOINTMENT_SLOT_MINUTES,
   TURNOVER_MINUTES,
   addMinutes,
-  assertTwelveHourRule,
+  assertTwentyFourHourRule,
   calculateArrivalAt,
   combineDateAndTime,
   endOfLocalDay,
@@ -168,33 +169,18 @@ export async function findAvailableSlots({ date, serviceId, excludeAppointmentId
     for (const session of WORKING_SESSIONS) {
       const sessionStart = combineDateAndTime(date, session.start);
       const sessionEnd = combineDateAndTime(date, session.end);
-      let pointer = sessionStart;
 
-      const sessionAppointments = roomAppointments.filter(
-        (item) => item.startAt < sessionEnd && item.endAt > sessionStart
-      );
-
-      for (const appointment of sessionAppointments) {
-        if (appointment.startAt > pointer && minutesBetween(pointer, appointment.startAt) >= service.durationMinutes) {
-          const startAt = pointer;
-          const endAt = addMinutes(startAt, service.durationMinutes);
-
-          if (!hasTimeConflict(dentistAppointments, startAt, endAt)) {
-            slots.push(buildSlot({ room, service, startAt, endAt, session }));
-          }
-        }
-
-        const blockedEnd = addMinutes(appointment.endAt, service.transitionTime ?? TURNOVER_MINUTES);
-        if (blockedEnd > pointer) {
-          pointer = blockedEnd;
-        }
-      }
-
-      if (minutesBetween(pointer, sessionEnd) >= service.durationMinutes) {
-        const startAt = pointer;
+      for (
+        let startAt = sessionStart;
+        minutesBetween(startAt, sessionEnd) >= service.durationMinutes;
+        startAt = addMinutes(startAt, APPOINTMENT_SLOT_MINUTES)
+      ) {
         const endAt = addMinutes(startAt, service.durationMinutes);
 
-        if (!hasTimeConflict(dentistAppointments, startAt, endAt)) {
+        if (
+          !hasTimeConflict(roomAppointments, startAt, endAt) &&
+          !hasTimeConflict(dentistAppointments, startAt, endAt)
+        ) {
           slots.push(buildSlot({ room, service, startAt, endAt, session }));
         }
       }
@@ -306,7 +292,7 @@ export async function createAppointmentFromSlot({ requester, patientId, serviceI
 }
 
 export async function rescheduleAppointmentFromSlot({ appointment, serviceId, date, startAt, roomId }) {
-  assertTwelveHourRule(appointment.startAt);
+  assertTwentyFourHourRule(appointment.startAt);
 
   const requestedStart = startAt ? new Date(startAt) : null;
   const targetServiceId = serviceId || appointment.service.toString();

@@ -63,7 +63,7 @@ async function ensurePatientRole() {
       parentRoleName: "user",
       isAbstract: false,
       inheritanceChain: getInheritanceChain("patient"),
-      description: "Bệnh nhân kế thừa từ Người dùng."
+      description: "Bệnh nhân đặt lịch online, xem lịch sử khám, hủy/dời lịch và đánh giá dịch vụ."
     },
     { new: true, upsert: true }
   );
