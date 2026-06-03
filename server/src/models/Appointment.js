@@ -18,7 +18,7 @@ const appointmentSchema = new mongoose.Schema(
     arrivalAt: { type: Date, required: true },
     status: {
       type: String,
-      enum: ["pending", "scheduled", "confirmed", "waitlisted", "rejected", "checked_in", "completed", "cancelled", "no_show"],
+      enum: ["pending", "scheduled", "confirmed", "waitlisted", "rejected", "checked_in", "in_treatment", "completed", "cancelled", "no_show"],
       default: "pending"
     },
     paymentStatus: {
@@ -34,6 +34,8 @@ const appointmentSchema = new mongoose.Schema(
     checkedInAt: Date,
     checkInTime: Date,
     cancelledAt: Date,
+    cancelledBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    cancelledByRole: { type: String, enum: ["patient", "receptionist", "admin", "dentist", "nurse"] },
     cancellationReason: { type: String, trim: true }
   },
   { timestamps: true }

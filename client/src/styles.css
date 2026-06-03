@@ -1287,6 +1287,19 @@ textarea {
   font-weight: 850;
 }
 
+.simple-slot-card {
+  align-content: center;
+  min-height: 128px;
+}
+
+.simple-slot-time {
+  justify-content: center;
+}
+
+.simple-slot-time strong {
+  font-size: 2rem;
+}
+
 .dentist-detail {
   flex-wrap: wrap;
   gap: 6px;
@@ -1409,6 +1422,103 @@ textarea {
 
 .appointment-reschedule-tools select {
   min-width: 260px;
+}
+
+.reception-schedule-panel {
+  overflow: hidden;
+}
+
+.reception-schedule-table-wrapper {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.reception-schedule-grid {
+  display: grid;
+  min-width: 760px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.schedule-head,
+.schedule-time-cell,
+.schedule-cell {
+  min-width: 0;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.schedule-head {
+  display: grid;
+  gap: 3px;
+  min-height: 66px;
+  padding: 10px;
+  background: #f3fafb;
+  color: var(--text);
+}
+
+.schedule-head span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.schedule-time-cell {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 12px 8px;
+  background: #f9fbfc;
+  color: var(--primary-dark);
+  font-weight: 900;
+}
+
+.schedule-cell {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 118px;
+  padding: 8px;
+  background: #ffffff;
+}
+
+.schedule-cell-card {
+  display: grid;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid #cfe4e7;
+  border-left: 4px solid var(--info);
+  border-radius: var(--radius);
+  background: #f9fdff;
+}
+
+.schedule-cell-card.locked {
+  border-left-color: var(--danger);
+  background: #fff7f5;
+}
+
+.schedule-cell-card > div:first-child {
+  display: grid;
+  gap: 5px;
+}
+
+.schedule-cell-card span,
+.schedule-cell-card small {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.schedule-status-actions {
+  justify-content: flex-start;
+}
+
+.schedule-status-actions select {
+  width: min(100%, 150px);
+}
+
+.clinical-treatment-actions {
+  justify-content: flex-start;
 }
 
 .locked-note {
@@ -1639,6 +1749,7 @@ th {
 
 .status-confirmed,
 .status-checked_in,
+.status-in_treatment,
 .status-paid,
 .status-active,
 .status-available,
@@ -3302,7 +3413,7 @@ th {
 }
 
 .patient-appointment-card {
-  grid-template-columns: minmax(0, 1.3fr) auto minmax(250px, 0.7fr);
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .appointment-subpanel,

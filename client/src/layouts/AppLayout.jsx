@@ -1,5 +1,6 @@
 import {
   Bell,
+  CalendarDays,
   CalendarPlus,
   Camera,
   ChevronRight,
@@ -27,6 +28,7 @@ import { firstError, validateName, validatePassword, validatePhone } from "../ut
 
 const receptionistTabs = [
   { id: "appointments", label: "Lịch hẹn", icon: ClipboardList },
+  { id: "schedule", label: "Lịch khám", icon: CalendarDays },
   { id: "booking", label: "Đặt lịch hộ", icon: CalendarPlus },
   { id: "consultations", label: "Tư vấn", icon: PhoneCall }
 ];

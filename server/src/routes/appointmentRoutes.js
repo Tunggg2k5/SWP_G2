@@ -21,7 +21,8 @@ import {
 } from "../services/schedulingService.js";
 
 const router = Router();
-const LOCKED_APPOINTMENT_STATUSES = new Set(["cancelled", "no_show", "rejected"]);
+const STAFF_ROLES = new Set(["receptionist", "admin", "nurse"]);
+const LOCKED_APPOINTMENT_STATUSES = new Set(["rejected"]);
 
 const populateAppointment = [
   { path: "patient", select: "fullName email phone" },
@@ -50,9 +51,25 @@ function canAccessAppointment(user, appointment) {
   return false;
 }
 
-function assertAppointmentCanChange(appointment) {
+function isPatientCancelled(appointment) {
+  return appointment.status === "cancelled" && appointment.cancelledByRole === "patient";
+}
+
+function assertAppointmentCanChange(appointment, user) {
+  if (isPatientCancelled(appointment)) {
+    const err = new Error("Lịch hẹn đã do bệnh nhân hủy nên lễ tân không thể cập nhật trạng thái.");
+    err.statusCode = 409;
+    throw err;
+  }
+
+  if (appointment.status === "cancelled" && !STAFF_ROLES.has(user.role)) {
+    const err = new Error("Lịch hẹn đã hủy nên không thể cập nhật thêm.");
+    err.statusCode = 409;
+    throw err;
+  }
+
   if (LOCKED_APPOINTMENT_STATUSES.has(appointment.status)) {
-    const err = new Error("Lịch hẹn đã hủy hoặc vắng mặt nên không thể cập nhật thêm.");
+    const err = new Error("Lịch hẹn đã bị từ chối nên không thể cập nhật thêm.");
     err.statusCode = 409;
     throw err;
   }
@@ -195,9 +212,10 @@ router.patch("/:id/reschedule", async (req, res, next) => {
       throw err;
     }
 
-    assertAppointmentCanChange(appointment);
+    assertAppointmentCanChange(appointment, req.user);
     await assertNotPastCheckIn(appointment);
 
+    const previousStatus = appointment.status;
     const updated = await rescheduleAppointmentFromSlot({
       appointment,
       serviceId: data.serviceId,
@@ -205,6 +223,10 @@ router.patch("/:id/reschedule", async (req, res, next) => {
       startAt: data.startAt,
       roomId: data.roomId
     });
+    if (previousStatus === "pending") {
+      updated.status = "pending";
+      await updated.save();
+    }
 
     await updated.populate(populateAppointment);
     res.json({ appointment: updated });
@@ -231,12 +253,14 @@ router.patch("/:id/cancel", async (req, res, next) => {
       throw err;
     }
 
-    assertAppointmentCanChange(appointment);
+    assertAppointmentCanChange(appointment, req.user);
     await assertNotPastCheckIn(appointment);
 
     assertTwentyFourHourRule(appointment.startAt);
     appointment.status = "cancelled";
     appointment.cancelledAt = new Date();
+    appointment.cancelledBy = req.user._id;
+    appointment.cancelledByRole = req.user.role;
     appointment.cancellationReason = data.reason;
     await appointment.save();
     if (appointment.appointmentSlot) {
@@ -252,7 +276,7 @@ router.patch("/:id/cancel", async (req, res, next) => {
 router.patch("/:id/status", authorize("receptionist", "admin", "nurse"), async (req, res, next) => {
   try {
     const schema = z.object({
-      status: z.enum(["pending", "scheduled", "confirmed", "waitlisted", "rejected", "checked_in", "completed", "cancelled", "no_show"]),
+      status: z.enum(["pending", "scheduled", "confirmed", "waitlisted", "rejected", "checked_in", "in_treatment", "completed", "cancelled", "no_show"]),
       note: noteSchema
     });
     const data = schema.parse(req.body);
@@ -264,24 +288,25 @@ router.patch("/:id/status", authorize("receptionist", "admin", "nurse"), async (
       throw err;
     }
 
-    assertAppointmentCanChange(appointment);
+    assertAppointmentCanChange(appointment, req.user);
     await assertNotPastCheckIn(appointment);
 
-    if (data.status === "checked_in" && ["pending", "waitlisted"].includes(appointment.status)) {
-      const err = new Error("Cần chấp nhận lịch hẹn trước khi check-in.");
+    if (["checked_in", "in_treatment", "completed"].includes(data.status) && ["pending", "waitlisted"].includes(appointment.status)) {
+      const err = new Error("Cần chấp nhận lịch hẹn trước khi cập nhật trạng thái khám.");
       err.statusCode = 409;
       throw err;
     }
 
-    if (appointment.status === "waitlisted" && ["scheduled", "confirmed", "checked_in"].includes(data.status)) {
+    if (appointment.status === "waitlisted" && ["scheduled", "confirmed", "checked_in", "in_treatment", "completed"].includes(data.status)) {
       const err = new Error("Cần đổi lịch sang slot trống trước khi xác nhận lịch hàng đợi.");
       err.statusCode = 409;
       throw err;
     }
 
+    const previousStatus = appointment.status;
     appointment.status = data.status;
     appointment.receptionistNote = data.note ?? appointment.receptionistNote;
-    if (["confirmed", "waitlisted", "rejected", "scheduled"].includes(data.status) && ["receptionist", "admin"].includes(req.user.role)) {
+    if (["confirmed", "waitlisted", "rejected", "scheduled", "checked_in", "in_treatment", "completed", "cancelled", "no_show"].includes(data.status) && ["receptionist", "admin"].includes(req.user.role)) {
       appointment.receptionist = req.user._id;
     }
     if (data.status === "checked_in") {
@@ -290,11 +315,19 @@ router.patch("/:id/status", authorize("receptionist", "admin", "nurse"), async (
     }
     if (data.status === "cancelled" || data.status === "rejected") {
       appointment.cancelledAt = new Date();
+      appointment.cancelledBy = req.user._id;
+      appointment.cancelledByRole = req.user.role;
       appointment.cancellationReason = data.note || (data.status === "rejected" ? "Lễ tân từ chối lịch hẹn." : appointment.cancellationReason);
+    } else if (previousStatus === "cancelled") {
+      appointment.cancelledAt = undefined;
+      appointment.cancelledBy = undefined;
+      appointment.cancelledByRole = undefined;
     }
     await appointment.save();
     if (["cancelled", "rejected", "waitlisted"].includes(data.status) && appointment.appointmentSlot) {
       await AppointmentSlot.findByIdAndUpdate(appointment.appointmentSlot, { status: "cancelled" });
+    } else if (["scheduled", "confirmed", "checked_in", "in_treatment", "completed"].includes(data.status) && appointment.appointmentSlot) {
+      await AppointmentSlot.findByIdAndUpdate(appointment.appointmentSlot, { status: "booked" });
     }
     await notifyPatientOfReceptionDecision(appointment, data.status);
     await appointment.populate(populateAppointment);
@@ -316,7 +349,7 @@ router.patch("/:id/confirmation-call", authorize("receptionist", "admin"), async
       throw err;
     }
 
-    assertAppointmentCanChange(appointment);
+    assertAppointmentCanChange(appointment, req.user);
     await assertNotPastCheckIn(appointment);
 
     if (["completed", "waitlisted"].includes(appointment.status)) {
@@ -359,7 +392,7 @@ router.patch("/:id/check-in", authorize("receptionist", "admin"), async (req, re
       throw err;
     }
 
-    assertAppointmentCanChange(appointment);
+    assertAppointmentCanChange(appointment, req.user);
     await assertNotPastCheckIn(appointment);
 
     appointment.status = "checked_in";

@@ -76,7 +76,7 @@ router.patch("/invoices/:id/pay", async (req, res, next) => {
     if (invoice.appointment) {
       await Appointment.findOneAndUpdate(
         { _id: invoice.appointment, patient: req.user._id },
-        { status: "completed", paymentStatus: "paid" }
+        { paymentStatus: "paid" }
       );
     }
     await Payment.create({

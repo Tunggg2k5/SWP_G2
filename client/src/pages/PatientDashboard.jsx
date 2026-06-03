@@ -4,9 +4,7 @@ import {
   FileText,
   Home,
   Menu,
-  RefreshCw,
   X,
-  XCircle
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -15,7 +13,7 @@ import Feedback from "../components/Feedback.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api, getErrorMessage } from "../services/api.js";
-import { formatDateTime, formatMoney, todayInput } from "../utils/format.js";
+import { formatDateTime, formatMoney } from "../utils/format.js";
 
 const patientNav = [
   { id: "home", label: "Trang chủ", icon: Home },
@@ -33,8 +31,7 @@ export default function PatientDashboard() {
   const [records, setRecords] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  const [rescheduleDates, setRescheduleDates] = useState({});
-  const [review, setReview] = useState({ appointmentId: "", rating: 5, comment: "" });
+  const [reviewForms, setReviewForms] = useState({});
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -58,63 +55,27 @@ export default function PatientDashboard() {
     load();
   }, []);
 
-  async function cancelAppointment(id) {
-    if (!window.confirm("Xác nhận hủy lịch hẹn này?")) return;
-
-    setError("");
-    setMessage("");
-    try {
-      await api.patch(`/appointments/${id}/cancel`, { reason: "Bệnh nhân yêu cầu hủy lịch" });
-      setMessage("Đã hủy lịch hẹn.");
-      load();
-    } catch (err) {
-      setError(getErrorMessage(err));
-    }
+  function updateReviewForm(appointmentId, values) {
+    setReviewForms((current) => ({
+      ...current,
+      [appointmentId]: {
+        rating: 5,
+        comment: "",
+        ...(current[appointmentId] || {}),
+        ...values
+      }
+    }));
   }
 
-  async function rescheduleAppointment(appointment) {
-    const date = rescheduleDates[appointment._id];
-    if (!date) {
-      setError("Chọn ngày mới trước khi đổi lịch.");
-      return;
-    }
-
-    if (!window.confirm("Xác nhận đổi lịch sang slot trống đầu tiên của ngày mới?")) return;
-
-    try {
-      await api.patch(`/appointments/${appointment._id}/reschedule`, { date });
-      setMessage("Đã đổi lịch sang lịch trống đầu tiên của ngày mới.");
-      setRescheduleDates((current) => ({ ...current, [appointment._id]: "" }));
-      load();
-    } catch (err) {
-      setError(getErrorMessage(err));
-    }
-  }
-
-  async function payInvoice(invoice) {
-    if (!window.confirm(`Xác nhận thanh toán hóa đơn ${formatMoney(invoice.total)}?`)) return;
-
-    try {
-      await api.patch(`/patient/invoices/${invoice._id}/pay`);
-      setMessage("Thanh toán đã được ghi nhận. Lịch hẹn đã chuyển sang Hoàn tất.");
-      load();
-    } catch (err) {
-      setError(getErrorMessage(err));
-    }
-  }
-
-  async function submitReview(event) {
+  async function submitReview(event, appointmentId) {
     event.preventDefault();
-    if (!review.appointmentId) {
-      setError("Chọn lịch đã hoàn tất trước khi gửi đánh giá.");
-      return;
-    }
+    const review = reviewForms[appointmentId] || { rating: 5, comment: "" };
 
     if (!window.confirm("Xác nhận gửi đánh giá cho lịch hẹn này?")) return;
 
     try {
-      await api.post("/patient/reviews", review);
-      setReview({ appointmentId: "", rating: 5, comment: "" });
+      await api.post("/patient/reviews", { ...review, appointmentId });
+      setReviewForms((current) => ({ ...current, [appointmentId]: { rating: 5, comment: "" } }));
       setMessage("Đã gửi đánh giá.");
       load();
     } catch (err) {
@@ -139,10 +100,8 @@ export default function PatientDashboard() {
     .filter((item) => !["cancelled", "completed", "no_show", "rejected"].includes(item.status) && new Date(item.startAt) >= new Date())
     .sort((a, b) => new Date(a.startAt) - new Date(b.startAt));
   const nextAppointment = activeAppointments[0];
-  const unpaidInvoices = invoices.filter((item) => item.status !== "paid");
   const unreadNotifications = notifications.filter((item) => item.type === "notification" && !item.isRead);
   const invoiceByAppointment = new Map(invoices.filter((invoice) => invoice.appointment?._id).map((invoice) => [invoice.appointment._id, invoice]));
-  const completedAppointments = appointments.filter((item) => item.status === "completed");
 
   return (
     <div className={`patient-dashboard-shell ${sidebarOpen ? "" : "collapsed"}`}>
@@ -246,6 +205,7 @@ export default function PatientDashboard() {
                 {appointments.map((appointment) => {
                   const invoice = invoiceByAppointment.get(appointment._id);
                   const canReview = appointment.status === "completed";
+                  const reviewForm = reviewForms[appointment._id] || { rating: 5, comment: "" };
                   return (
                     <article className="appointment-card patient-appointment-card" key={appointment._id}>
                       <div>
@@ -262,33 +222,20 @@ export default function PatientDashboard() {
                           <div className="appointment-subpanel">
                             <strong>Hóa đơn: {formatMoney(invoice.total)}</strong>
                             <StatusBadge value={invoice.status} />
-                            {invoice.status !== "paid" && (
-                              <button className="button small" onClick={() => payInvoice(invoice)}>
-                                Thanh toán
-                              </button>
-                            )}
                           </div>
                         )}
                         {canReview && (
-                          <form className="appointment-review-form" onSubmit={submitReview}>
-                            <select value={review.appointmentId} onChange={(e) => setReview({ ...review, appointmentId: e.target.value })}>
-                              <option value="">Chọn lịch để đánh giá</option>
-                              {completedAppointments.map((item) => (
-                                <option value={item._id} key={item._id}>
-                                  {item.service?.name} - {formatDateTime(item.startAt)}
-                                </option>
-                              ))}
-                            </select>
+                          <form className="appointment-review-form" onSubmit={(event) => submitReview(event, appointment._id)}>
                             <input
                               type="number"
                               min="1"
                               max="5"
-                              value={review.rating}
-                              onChange={(e) => setReview({ ...review, rating: e.target.value })}
+                              value={reviewForm.rating}
+                              onChange={(e) => updateReviewForm(appointment._id, { rating: e.target.value })}
                             />
                             <input
-                              value={review.comment}
-                              onChange={(e) => setReview({ ...review, comment: e.target.value })}
+                              value={reviewForm.comment}
+                              onChange={(e) => updateReviewForm(appointment._id, { comment: e.target.value })}
                               placeholder="Nhận xét"
                               maxLength={1000}
                             />
@@ -298,20 +245,6 @@ export default function PatientDashboard() {
                       </div>
                       <div>
                         <StatusBadge value={appointment.status} />
-                      </div>
-                      <div className="row-actions">
-                        <input
-                          type="date"
-                          min={todayInput()}
-                          value={rescheduleDates[appointment._id] || ""}
-                          onChange={(e) => setRescheduleDates((current) => ({ ...current, [appointment._id]: e.target.value }))}
-                        />
-                        <button className="icon-button" title="Đổi lịch" onClick={() => rescheduleAppointment(appointment)}>
-                          <RefreshCw size={17} />
-                        </button>
-                        <button className="icon-button danger" title="Hủy lịch" onClick={() => cancelAppointment(appointment._id)}>
-                          <XCircle size={17} />
-                        </button>
                       </div>
                     </article>
                   );

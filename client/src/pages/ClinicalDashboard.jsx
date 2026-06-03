@@ -1,4 +1,4 @@
-import { ClipboardPenLine, DoorOpen, FileText, Stethoscope } from "lucide-react";
+import { CheckCheck, ClipboardPenLine, DoorOpen, FileText, Stethoscope } from "lucide-react";
 import { useEffect, useState } from "react";
 import EmptyState from "../components/EmptyState.jsx";
 import Feedback from "../components/Feedback.jsx";
@@ -89,6 +89,26 @@ export default function ClinicalDashboard() {
     }
   }
 
+  async function completeAppointment() {
+    if (!recordForm.appointmentId) {
+      setError("Chọn lịch hẹn trước khi hoàn tất điều trị.");
+      return;
+    }
+
+    if (!window.confirm("Xác nhận hoàn tất lịch điều trị này?")) return;
+
+    try {
+      await api.patch(`/appointments/${recordForm.appointmentId}/status`, {
+        status: "completed",
+        note: "Y tá hoàn tất quy trình điều trị."
+      });
+      setMessage("Đã hoàn tất lịch điều trị. Bệnh nhân có thể gửi đánh giá.");
+      load();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  }
+
   async function viewPatientHistory(patientId) {
     if (!patientId) {
       setError("Không tìm thấy bệnh nhân của lịch hẹn này.");
@@ -112,6 +132,8 @@ export default function ClinicalDashboard() {
       setError(getErrorMessage(err));
     }
   }
+
+  const selectedAppointment = appointments.find((appointment) => appointment._id === recordForm.appointmentId);
 
   return (
     <div className="page-grid">
@@ -214,7 +236,18 @@ export default function ClinicalDashboard() {
               <span>Đơn thuốc</span>
               <textarea value={recordForm.prescription} onChange={(e) => updateRecord("prescription", e.target.value)} rows="3" />
             </label>
-            <button className="button primary">Lưu hồ sơ</button>
+            <div className="row-actions clinical-treatment-actions">
+              <button className="button primary">Lưu hồ sơ</button>
+              <button
+                type="button"
+                className="button secondary"
+                disabled={!recordForm.appointmentId || selectedAppointment?.status === "completed"}
+                onClick={completeAppointment}
+              >
+                <CheckCheck size={17} />
+                Hoàn tất
+              </button>
+            </div>
           </form>
         </section>
       )}

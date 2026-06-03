@@ -1,4 +1,4 @@
-import { CalendarSearch, Clock, DoorOpen, Filter, UserRoundCheck } from "lucide-react";
+import { CalendarSearch, Clock, DoorOpen, Filter } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import EmptyState from "../components/EmptyState.jsx";
@@ -91,7 +91,7 @@ export default function BookingPage() {
       return;
     }
 
-    if (!window.confirm(`Xác nhận đặt lịch ${slot.service.name} lúc ${formatTime(slot.startAt)} tại ${slot.room.name}?`)) {
+    if (!window.confirm(`Xác nhận đặt lịch lúc ${formatTime(slot.startAt)}?`)) {
       return;
     }
 
@@ -106,7 +106,7 @@ export default function BookingPage() {
         roomId: slot.room._id,
         note
       });
-      setMessage("Đã gửi yêu cầu đặt lịch. Lễ tân sẽ tiếp nhận, xác nhận, từ chối hoặc chuyển vào hàng đợi nếu cần.");
+      setMessage("Đã gửi yêu cầu đặt lịch. Lễ tân sẽ tiếp nhận, xác nhận hoặc từ chối nếu cần.");
       await searchSlots({ preserveFeedback: true });
     } catch (err) {
       setError(getErrorMessage(err));
@@ -207,21 +207,10 @@ export default function BookingPage() {
         ) : filteredSlots.length ? (
           <div className="slot-grid">
             {filteredSlots.map((slot) => (
-              <article className="slot-card" key={`${slot.room._id}-${slot.startAt}`}>
-                <div className="slot-time">
+              <article className="slot-card simple-slot-card" key={`${slot.room._id}-${slot.startAt}`}>
+                <div className="slot-time simple-slot-time">
                   <strong>{formatTime(slot.startAt)}</strong>
-                  <span>{slot.session}</span>
                 </div>
-                <div>
-                  <h4>{slot.room.name}</h4>
-                  <p>{slot.service.name}</p>
-                </div>
-                <div className="dentist-detail">
-                  <UserRoundCheck size={17} />
-                  <span>{slot.dentist.fullName}</span>
-                  <small>{slot.dentist.specialty}</small>
-                </div>
-                <p className="mini">Giờ đến: {formatTime(slot.arrivalAt)}</p>
                 <button className="button primary" onClick={() => book(slot)}>
                   Đặt lịch
                 </button>
