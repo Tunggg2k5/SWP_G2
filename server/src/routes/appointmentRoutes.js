@@ -21,7 +21,7 @@ import {
 } from "../services/schedulingService.js";
 
 const router = Router();
-const LOCKED_APPOINTMENT_STATUSES = new Set(["cancelled", "no_show"]);
+const LOCKED_APPOINTMENT_STATUSES = new Set(["cancelled", "no_show", "rejected"]);
 
 const populateAppointment = [
   { path: "patient", select: "fullName email phone" },
@@ -56,6 +56,32 @@ function assertAppointmentCanChange(appointment) {
     err.statusCode = 409;
     throw err;
   }
+}
+
+async function notifyPatientOfReceptionDecision(appointment, status) {
+  const messages = {
+    confirmed: {
+      title: "Lịch hẹn đã được chấp nhận",
+      message: "Lễ tân đã chấp nhận lịch hẹn của bạn. Vui lòng đến đúng giờ."
+    },
+    waitlisted: {
+      title: "Lịch hẹn được chuyển vào hàng đợi",
+      message: "Lễ tân đã chuyển lịch hẹn của bạn vào hàng đợi và sẽ liên hệ khi có slot phù hợp."
+    },
+    rejected: {
+      title: "Lịch hẹn đã bị từ chối",
+      message: "Lễ tân đã từ chối lịch hẹn này. Bạn có thể chọn slot khác và gửi lại yêu cầu."
+    }
+  };
+  const content = messages[status];
+  if (!content) return;
+
+  await Notification.create({
+    user: appointment.patient,
+    title: content.title,
+    message: content.message,
+    isRead: false
+  });
 }
 
 async function assertNotPastCheckIn(appointment) {
@@ -226,7 +252,7 @@ router.patch("/:id/cancel", async (req, res, next) => {
 router.patch("/:id/status", authorize("receptionist", "admin", "nurse"), async (req, res, next) => {
   try {
     const schema = z.object({
-      status: z.enum(["scheduled", "confirmed", "checked_in", "completed", "cancelled", "no_show"]),
+      status: z.enum(["pending", "scheduled", "confirmed", "waitlisted", "rejected", "checked_in", "completed", "cancelled", "no_show"]),
       note: noteSchema
     });
     const data = schema.parse(req.body);
@@ -241,14 +267,36 @@ router.patch("/:id/status", authorize("receptionist", "admin", "nurse"), async (
     assertAppointmentCanChange(appointment);
     await assertNotPastCheckIn(appointment);
 
+    if (data.status === "checked_in" && ["pending", "waitlisted"].includes(appointment.status)) {
+      const err = new Error("Cần chấp nhận lịch hẹn trước khi check-in.");
+      err.statusCode = 409;
+      throw err;
+    }
+
+    if (appointment.status === "waitlisted" && ["scheduled", "confirmed", "checked_in"].includes(data.status)) {
+      const err = new Error("Cần đổi lịch sang slot trống trước khi xác nhận lịch hàng đợi.");
+      err.statusCode = 409;
+      throw err;
+    }
+
     appointment.status = data.status;
     appointment.receptionistNote = data.note ?? appointment.receptionistNote;
+    if (["confirmed", "waitlisted", "rejected", "scheduled"].includes(data.status) && ["receptionist", "admin"].includes(req.user.role)) {
+      appointment.receptionist = req.user._id;
+    }
     if (data.status === "checked_in") {
       appointment.checkedInAt = new Date();
       appointment.checkInTime = appointment.checkedInAt;
     }
-    if (data.status === "cancelled") appointment.cancelledAt = new Date();
+    if (data.status === "cancelled" || data.status === "rejected") {
+      appointment.cancelledAt = new Date();
+      appointment.cancellationReason = data.note || (data.status === "rejected" ? "Lễ tân từ chối lịch hẹn." : appointment.cancellationReason);
+    }
     await appointment.save();
+    if (["cancelled", "rejected", "waitlisted"].includes(data.status) && appointment.appointmentSlot) {
+      await AppointmentSlot.findByIdAndUpdate(appointment.appointmentSlot, { status: "cancelled" });
+    }
+    await notifyPatientOfReceptionDecision(appointment, data.status);
     await appointment.populate(populateAppointment);
     res.json({ appointment });
   } catch (error) {
@@ -271,7 +319,7 @@ router.patch("/:id/confirmation-call", authorize("receptionist", "admin"), async
     assertAppointmentCanChange(appointment);
     await assertNotPastCheckIn(appointment);
 
-    if (appointment.status === "completed") {
+    if (["completed", "waitlisted"].includes(appointment.status)) {
       const err = new Error("Lịch hẹn này không còn cần gọi xác nhận.");
       err.statusCode = 409;
       throw err;
@@ -281,7 +329,7 @@ router.patch("/:id/confirmation-call", authorize("receptionist", "admin"), async
     appointment.confirmationBy = req.user._id;
     appointment.confirmationNote = data.note || "Lễ tân đã gọi xác nhận lịch hẹn.";
     appointment.receptionist = req.user._id;
-    if (appointment.status === "scheduled") {
+    if (["pending", "scheduled"].includes(appointment.status)) {
       appointment.status = "confirmed";
     }
 

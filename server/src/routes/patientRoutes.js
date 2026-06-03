@@ -172,7 +172,7 @@ async function buildPatientNotifications(userId) {
   const [appointments, storedNotifications] = await Promise.all([
     Appointment.find({
       patient: userId,
-      status: { $in: ["scheduled", "confirmed"] },
+      status: { $in: ["pending", "scheduled", "confirmed", "waitlisted"] },
       startAt: { $gte: new Date() }
     })
       .populate("service", "name")

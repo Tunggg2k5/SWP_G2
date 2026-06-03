@@ -13,7 +13,7 @@ Full-stack project based on `DAS System Requirements (1).docx`.
 
 - Guest clinic/service/dentist browsing and patient account registration
 - Patient online booking by service, dentist and available slot; appointment history, cancel/reschedule before 24 hours
-- Receptionist appointment confirmation/rejection, assisted booking, check-in, no-show handling and payment recording
+- Receptionist appointment intake, confirmation/rejection/waitlist, assisted booking, check-in, no-show handling and payment recording
 - Dentist work schedule, patient list and treatment result recording
 - Nurse clinical support, vital signs, treatment notes and room status updates
 - Admin/Manager master data, dashboard, revenue report and patient statistics
@@ -39,7 +39,7 @@ Patient:
 Receptionist:
 
 - Daily appointment board
-- Confirm or reject appointment
+- Confirm, reject or move appointment to waitlist
 - Check-in patient, cancel/reschedule on behalf of patient, no-show handling
 - Create/search patient account
 - Offline booking for patients
@@ -89,7 +89,7 @@ The project follows **Đề Tài A: Hệ Thống Đặt Lịch Phòng Khám Nha 
 | UCA13 | WF2 Core Transaction Flow | Patient | Book Appointment |
 | UCA14 | WF2 Core Transaction Flow | Patient | View Appointment History |
 | UCA15 | WF2 Core Transaction Flow | Receptionist | Confirm Appointment |
-| UCA16 | WF2 Core Transaction Flow | Receptionist | Reject Appointment |
+| UCA16 | WF2 Core Transaction Flow | Receptionist | Reject / Waitlist Appointment |
 | UCA17 | WF2 Core Transaction Flow | Receptionist | Check-in Patient |
 | UCA18 | WF2 Core Transaction Flow | Dentist | Record Treatment Result |
 | UCA19 | WF2 Core Transaction Flow | Nurse | Record Vital Signs |

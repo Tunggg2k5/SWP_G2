@@ -381,6 +381,16 @@ textarea:focus-visible {
   background: var(--primary-dark);
 }
 
+.button.danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-color: #f2bbb3;
+}
+
+.button.danger:hover {
+  background: #ffe2de;
+}
+
 .button.secondary {
   background: var(--secondary-soft);
   color: #7d4218;
@@ -1326,6 +1336,81 @@ textarea {
   opacity: 0.82;
 }
 
+.reception-appointment-card {
+  grid-template-columns: minmax(360px, 1fr) minmax(320px, 0.9fr);
+  align-items: stretch;
+}
+
+.reception-appointment-card.pending-intake {
+  border-left-color: var(--primary);
+  background: linear-gradient(180deg, #f8ffff 0%, #edfafa 100%);
+  box-shadow: 0 14px 32px rgba(8, 127, 140, 0.08);
+}
+
+.appointment-card-main,
+.appointment-card-actions,
+.appointment-slot-box {
+  min-width: 0;
+}
+
+.appointment-card-main,
+.appointment-card-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.patient-contact-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.patient-contact-row p {
+  margin-top: 3px;
+  font-weight: 780;
+}
+
+.appointment-slot-box {
+  display: grid;
+  gap: 5px;
+  padding: 11px 12px;
+  border: 1px solid #bfe6e9;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.appointment-slot-box strong {
+  color: var(--primary-dark);
+  font-size: 0.88rem;
+}
+
+.appointment-slot-box span {
+  color: #203744;
+  font-size: 0.88rem;
+}
+
+.appointment-intake-actions,
+.appointment-status-tools,
+.appointment-reschedule-tools {
+  justify-content: flex-end;
+}
+
+.appointment-intake-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.appointment-card-actions select {
+  max-width: 240px;
+}
+
+.appointment-reschedule-tools select {
+  min-width: 260px;
+}
+
 .locked-note {
   display: inline-flex;
   width: fit-content;
@@ -1563,6 +1648,7 @@ th {
 }
 
 .status-scheduled,
+.status-waitlisted,
 .status-waiting,
 .status-new,
 .status-contacted {
@@ -1571,6 +1657,7 @@ th {
 }
 
 .status-cancelled,
+.status-rejected,
 .status-no_show,
 .status-expired,
 .status-locked,
@@ -1581,7 +1668,8 @@ th {
 }
 
 .status-cleaning,
-.status-in_use {
+.status-in_use,
+.status-pending {
   background: var(--warning-soft);
   color: var(--warning);
 }
@@ -1951,6 +2039,22 @@ th {
   .mini-row {
     grid-template-columns: 1fr;
     align-items: start;
+  }
+
+  .reception-appointment-card {
+    grid-template-columns: 1fr;
+  }
+
+  .appointment-intake-actions,
+  .appointment-status-tools,
+  .appointment-reschedule-tools {
+    justify-content: flex-start;
+  }
+
+  .appointment-card-actions select,
+  .appointment-reschedule-tools select {
+    width: 100%;
+    max-width: none;
   }
 
   .row-actions {

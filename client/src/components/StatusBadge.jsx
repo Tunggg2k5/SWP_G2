@@ -1,6 +1,9 @@
 const labels = {
+  pending: "Chờ tiếp nhận",
   scheduled: "Đã đặt",
   confirmed: "Đã xác nhận",
+  waitlisted: "Hàng đợi",
+  rejected: "Từ chối",
   called: "Đã gọi",
   checked_in: "Đã đến",
   completed: "Hoàn tất",
@@ -21,7 +24,6 @@ const labels = {
   maintenance: "Bảo trì",
   paid: "Đã trả",
   unpaid: "Chưa trả",
-  pending: "Đang chờ",
   pending_checkin: "Thanh toán khi đến",
   not_required: "Không yêu cầu",
   refunded: "Đã hoàn tiền",

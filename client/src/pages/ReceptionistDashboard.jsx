@@ -10,12 +10,15 @@ import { firstError, requireValue, validateDate, validateName, validateNote, val
 
 const appointmentStatusOptions = [
   { value: "all", label: "Tất cả trạng thái" },
+  { value: "pending", label: "Chờ tiếp nhận" },
   { value: "called", label: "Đã gọi" },
   { value: "scheduled", label: "Đã đặt" },
   { value: "confirmed", label: "Đã xác nhận" },
+  { value: "waitlisted", label: "Hàng đợi" },
   { value: "checked_in", label: "Đã đến" },
   { value: "completed", label: "Hoàn tất" },
   { value: "cancelled", label: "Đã hủy" },
+  { value: "rejected", label: "Từ chối" },
   { value: "no_show", label: "Vắng mặt" }
 ];
 
@@ -149,9 +152,36 @@ export default function ReceptionistDashboard() {
     }
   }
 
+  async function receptionDecision(appointment, status) {
+    const labels = {
+      confirmed: "chấp nhận lịch hẹn này",
+      waitlisted: "chuyển lịch hẹn này vào hàng đợi",
+      rejected: "từ chối lịch hẹn này"
+    };
+
+    if (!window.confirm(`Xác nhận ${labels[status]}?`)) return;
+
+    try {
+      await api.patch(`/appointments/${appointment._id}/status`, {
+        status,
+        note: `Lễ tân ${labels[status]}.`
+      });
+      setMessage(
+        status === "confirmed"
+          ? "Đã chấp nhận lịch hẹn và gửi thông báo cho bệnh nhân."
+          : status === "waitlisted"
+            ? "Đã chuyển lịch hẹn vào hàng đợi."
+            : "Đã từ chối lịch hẹn."
+      );
+      load();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  }
+
   async function applyStatusAction(appointment) {
     if (isAppointmentLocked(appointment, currentTime)) {
-      setError("Lịch hẹn đã hủy, vắng mặt hoặc quá thời gian check-in nên không thể cập nhật.");
+      setError("Lịch hẹn đã hủy, vắng mặt, từ chối hoặc quá thời gian check-in nên không thể cập nhật.");
       return;
     }
 
@@ -277,6 +307,8 @@ export default function ReceptionistDashboard() {
     return matchesRoom && matchesStatus && (!keyword || searchableText.includes(keyword));
   });
   const confirmationNeededCount = appointments.filter((appointment) => needsConfirmationCall(appointment)).length;
+  const pendingIntakeCount = appointments.filter((appointment) => appointment.status === "pending").length;
+  const waitlistCount = appointments.filter((appointment) => appointment.status === "waitlisted").length;
   const checkedInCount = appointments.filter((appointment) => appointment.status === "checked_in").length;
   const patientKeyword = patientSearch.trim().toLowerCase();
   const selectablePatients = patients.filter((patient) => {
@@ -299,6 +331,8 @@ export default function ReceptionistDashboard() {
 
           <div className="metrics-grid compact-grid">
             <ReceptionMetric icon={ClipboardList} label="Tổng lịch" value={appointments.length} />
+            <ReceptionMetric icon={ClipboardList} label="Chờ tiếp nhận" value={pendingIntakeCount} />
+            <ReceptionMetric icon={ClipboardList} label="Hàng đợi" value={waitlistCount} />
             <ReceptionMetric icon={PhoneCall} label="Cần gọi xác nhận" value={confirmationNeededCount} />
             <ReceptionMetric icon={CheckCheck} label="Đã đến" value={checkedInCount} />
           </div>
@@ -348,26 +382,52 @@ export default function ReceptionistDashboard() {
             <div className="appointment-list">
               {filteredAppointments.map((appointment) => {
                 const locked = isAppointmentLocked(appointment, currentTime);
+                const showIntakeActions = appointment.status === "pending";
+                const canManageSlot = !locked && ["pending", "scheduled", "confirmed", "waitlisted"].includes(appointment.status);
                 return (
-                  <article className={`appointment-card ${locked ? "locked" : ""}`} key={appointment._id}>
-                    <div>
-                      <h4>{appointment.patient?.fullName}</h4>
-                      <p>
-                        {appointment.service?.name} - {formatDateTime(appointment.startAt)}
-                      </p>
+                  <article
+                    className={`appointment-card reception-appointment-card ${appointment.status === "pending" ? "pending-intake" : ""} ${locked ? "locked" : ""}`}
+                    key={appointment._id}
+                  >
+                    <div className="appointment-card-main">
+                      <div className="patient-contact-row">
+                        <div>
+                          <h4>{appointment.patient?.fullName || "Bệnh nhân"}</h4>
+                          <p>{appointment.patient?.phone || "Chưa có SĐT"}</p>
+                        </div>
+                        <StatusBadge value={appointment.status} />
+                      </div>
+                      <div className="appointment-slot-box">
+                        <strong>Slot bệnh nhân đã đặt</strong>
+                        <span>{appointment.service?.name} - {formatDateTime(appointment.startAt)}</span>
+                        <span>Phòng: {appointment.room?.name || "-"} / Bác sĩ: {appointment.dentist?.fullName || "-"}</span>
+                        <span>Y tá: {appointment.nurse?.fullName || "Chưa phân công"} / Kênh: {appointment.channel === "online" ? "Online" : "Tại quầy"}</span>
+                        <span>Giờ đến: {formatDateTime(appointment.arrivalAt)}</span>
+                      </div>
                       <div className="appointment-meta-stack">
-                        <span className="mini">
-                          Phòng: {appointment.room?.name} / Bác sĩ: {appointment.dentist?.fullName}
-                        </span>
-                        <span className="mini">Giờ đến: {formatDateTime(appointment.arrivalAt)}</span>
+                        {appointment.patientNote && <span className="mini">Ghi chú bệnh nhân: {appointment.patientNote}</span>}
+                        {appointment.receptionistNote && <span className="mini">Ghi chú lễ tân: {appointment.receptionistNote}</span>}
                       </div>
                       <span className={`mini confirmation-note ${needsConfirmationCall(appointment) ? "warning-text" : ""}`}>
                         {formatConfirmationText(appointment)}
                       </span>
                       {locked && <span className="mini locked-note">{lockedAppointmentText(appointment, currentTime)}</span>}
                     </div>
-                    <div className="row-actions">
-                      <StatusBadge value={appointment.status} />
+                    <div className="appointment-card-actions">
+                      {showIntakeActions && (
+                        <div className="appointment-intake-actions">
+                          <button className="button small primary" disabled={locked} onClick={() => receptionDecision(appointment, "confirmed")}>
+                            Chấp nhận
+                          </button>
+                          <button className="button small" disabled={locked} onClick={() => receptionDecision(appointment, "waitlisted")}>
+                            Hàng đợi
+                          </button>
+                          <button className="button small danger" disabled={locked} onClick={() => receptionDecision(appointment, "rejected")}>
+                            Từ chối
+                          </button>
+                        </div>
+                      )}
+                      <div className="row-actions appointment-status-tools">
                       <select
                         value={statusActions[appointment._id] || appointment.status}
                         disabled={locked}
@@ -382,24 +442,26 @@ export default function ReceptionistDashboard() {
                       <button className="button small" disabled={locked} onClick={() => applyStatusAction(appointment)}>
                         Cập nhật
                       </button>
+                      </div>
+                      <div className="row-actions appointment-reschedule-tools">
                       <input
                         type="date"
                         min={todayInput()}
                         value={rescheduleDates[appointment._id] || ""}
-                        disabled={locked}
+                        disabled={!canManageSlot}
                         onChange={(e) => {
                           setRescheduleDates((current) => ({ ...current, [appointment._id]: e.target.value }));
                           setRescheduleSlots((current) => ({ ...current, [appointment._id]: [] }));
                           setRescheduleSlotKeys((current) => ({ ...current, [appointment._id]: "" }));
                         }}
                       />
-                      <button className="button small" disabled={locked} onClick={() => loadRescheduleSlots(appointment)}>
+                      <button className="button small" disabled={!canManageSlot} onClick={() => loadRescheduleSlots(appointment)}>
                         Xem slot
                       </button>
                       {(rescheduleSlots[appointment._id] || []).length > 0 && (
                         <select
                           value={rescheduleSlotKeys[appointment._id] || ""}
-                          disabled={locked}
+                          disabled={!canManageSlot}
                           onChange={(e) => setRescheduleSlotKeys((current) => ({ ...current, [appointment._id]: e.target.value }))}
                         >
                           {(rescheduleSlots[appointment._id] || []).map((slot) => (
@@ -409,9 +471,10 @@ export default function ReceptionistDashboard() {
                           ))}
                         </select>
                       )}
-                      <button className="button small" disabled={locked} onClick={() => rescheduleAppointment(appointment)}>
+                      <button className="button small" disabled={!canManageSlot} onClick={() => rescheduleAppointment(appointment)}>
                         Đổi lịch slot
                       </button>
+                      </div>
                     </div>
                   </article>
                 );
@@ -590,7 +653,7 @@ function needsConfirmationCall(appointment) {
 }
 
 function isAppointmentLocked(appointment, currentTime = new Date()) {
-  return ["cancelled", "no_show"].includes(appointment.status) || isPastCheckInDeadline(appointment, currentTime);
+  return ["cancelled", "no_show", "rejected"].includes(appointment.status) || isPastCheckInDeadline(appointment, currentTime);
 }
 
 function isPastCheckInDeadline(appointment, currentTime) {
@@ -605,11 +668,22 @@ function isPastCheckInDeadline(appointment, currentTime) {
 function lockedAppointmentText(appointment, currentTime) {
   if (appointment.status === "cancelled") return "Lịch đã hủy nên không thể chỉnh thêm trạng thái.";
   if (appointment.status === "no_show") return "Lịch đã vắng mặt nên không thể chỉnh thêm trạng thái.";
+  if (appointment.status === "rejected") return "Lịch đã bị từ chối nên không thể chỉnh thêm trạng thái.";
   if (isPastCheckInDeadline(appointment, currentTime)) return "Đã quá thời gian check-in, hệ thống sẽ chuyển thành Vắng mặt.";
   return "Lịch đang bị khóa cập nhật.";
 }
 
 function formatConfirmationText(appointment) {
+  if (appointment.status === "pending") {
+    return "Bệnh nhân đã chọn slot, đang chờ lễ tân tiếp nhận.";
+  }
+  if (appointment.status === "waitlisted") {
+    return "Lịch đang ở hàng đợi. Lễ tân có thể đổi sang slot trống khi phù hợp.";
+  }
+  if (appointment.status === "rejected") {
+    return "Lịch đã bị lễ tân từ chối.";
+  }
+
   if (appointment.confirmationCalledAt) {
     const by = appointment.confirmationBy?.fullName ? ` bởi ${appointment.confirmationBy.fullName}` : "";
     return `Đã gọi xác nhận lúc ${formatDateTime(appointment.confirmationCalledAt)}${by}.`;

@@ -34,10 +34,10 @@ export const workflowUseCases = [
     workflow: "WF2",
     name: "Core Transaction Flow",
     useCases: [
-      { id: "UCA13", actor: "Patient", name: "Book Appointment", description: "Chọn dịch vụ, nha sĩ, slot trống và xác nhận lịch hẹn.", path: "Success" },
+      { id: "UCA13", actor: "Patient", name: "Book Appointment", description: "Chọn dịch vụ, nha sĩ, slot trống và gửi yêu cầu đặt lịch để lễ tân tiếp nhận.", path: "Success" },
       { id: "UCA14", actor: "Patient", name: "View Appointment History", description: "Xem lịch hẹn hiện tại, lịch sử khám và hồ sơ điều trị." },
       { id: "UCA15", actor: "Receptionist", name: "Confirm Appointment", description: "Xác nhận lịch hẹn hợp lệ với bệnh nhân.", path: "Success" },
-      { id: "UCA16", actor: "Receptionist", name: "Reject Appointment", description: "Từ chối lịch hẹn khi không đủ điều kiện hoặc bệnh nhân yêu cầu." },
+      { id: "UCA16", actor: "Receptionist", name: "Reject / Waitlist Appointment", description: "Từ chối lịch hẹn hoặc chuyển vào hàng đợi khi chưa thể xác nhận slot ngay." },
       { id: "UCA17", actor: "Receptionist", name: "Check-in Patient", description: "Check-in khi bệnh nhân đến phòng khám.", path: "Success" },
       { id: "UCA18", actor: "Dentist", name: "Record Treatment Result", description: "Ghi kết quả khám, chẩn đoán và ghi chú điều trị.", path: "Success" },
       { id: "UCA19", actor: "Nurse", name: "Record Vital Signs", description: "Y tá ghi sinh hiệu và thông tin hỗ trợ trước hoặc trong buổi khám." },
@@ -83,7 +83,7 @@ export const actorUseCaseCoverage = [
   },
   {
     actor: "Receptionist",
-    summary: "Lễ tân xác nhận hoặc từ chối lịch hẹn, check-in, xử lý no-show, đặt lịch hộ và ghi nhận thanh toán.",
+    summary: "Lễ tân tiếp nhận lịch online, xác nhận, từ chối hoặc chuyển vào hàng đợi, check-in, xử lý no-show, đặt lịch hộ và ghi nhận thanh toán.",
     entry: "/dashboard",
     useCases: ["UCA15", "UCA16", "UCA17", "UCA22", "UCA23", "UCA24", "UCA25", "UCA27"]
   },

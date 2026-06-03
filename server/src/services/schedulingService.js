@@ -18,7 +18,7 @@ import {
   startOfLocalDay
 } from "../utils/time.js";
 
-const BLOCKING_STATUSES = ["scheduled", "confirmed", "checked_in"];
+const BLOCKING_STATUSES = ["pending", "scheduled", "confirmed", "checked_in"];
 
 function httpError(message, statusCode = 400) {
   const err = new Error(message);
@@ -271,6 +271,7 @@ export async function createAppointmentFromSlot({ requester, patientId, serviceI
     endAt: selected.endAt,
     status: "booked"
   });
+  const appointmentStatus = requester.role === "patient" || channel === "online" ? "pending" : "confirmed";
 
   return Appointment.create({
     patient: patient._id,
@@ -286,6 +287,7 @@ export async function createAppointmentFromSlot({ requester, patientId, serviceI
     startAt: selected.startAt,
     endAt: selected.endAt,
     arrivalAt: selected.arrivalAt,
+    status: appointmentStatus,
     paymentStatus: service.requiresPrepayment ? "pending_checkin" : "not_required",
     patientNote: note
   });

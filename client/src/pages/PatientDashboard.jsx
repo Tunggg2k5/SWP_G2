@@ -136,7 +136,7 @@ export default function PatientDashboard() {
   }
 
   const activeAppointments = appointments
-    .filter((item) => !["cancelled", "completed", "no_show"].includes(item.status) && new Date(item.startAt) >= new Date())
+    .filter((item) => !["cancelled", "completed", "no_show", "rejected"].includes(item.status) && new Date(item.startAt) >= new Date())
     .sort((a, b) => new Date(a.startAt) - new Date(b.startAt));
   const nextAppointment = activeAppointments[0];
   const unpaidInvoices = invoices.filter((item) => item.status !== "paid");

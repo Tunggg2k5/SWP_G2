@@ -106,7 +106,7 @@ export default function BookingPage() {
         roomId: slot.room._id,
         note
       });
-      setMessage("Đặt lịch thành công. Lịch hẹn đã xuất hiện trong bảng điều khiển.");
+      setMessage("Đã gửi yêu cầu đặt lịch. Lễ tân sẽ tiếp nhận, xác nhận, từ chối hoặc chuyển vào hàng đợi nếu cần.");
       await searchSlots({ preserveFeedback: true });
     } catch (err) {
       setError(getErrorMessage(err));
