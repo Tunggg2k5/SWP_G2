@@ -186,7 +186,7 @@ export default function BookingPage() {
         {selectedService && (
           <div className="rule-strip">
             <span>
-              <Clock size={16} /> {selectedService.durationMinutes} phút + 10 phút chuyển giao
+              <Clock size={16} /> Mỗi lịch khám cố định 30 phút
             </span>
             <span>{selectedService.requiresPrepayment ? `Thanh toán khi đến khám: ${formatMoney(selectedService.price)}` : "Chi phí xác định sau khám"}</span>
             <span>

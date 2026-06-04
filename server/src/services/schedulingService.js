@@ -7,7 +7,6 @@ import User from "../models/User.js";
 import {
   WORKING_SESSIONS,
   APPOINTMENT_SLOT_MINUTES,
-  TURNOVER_MINUTES,
   addMinutes,
   assertTwentyFourHourRule,
   calculateArrivalAt,
@@ -19,6 +18,7 @@ import {
 } from "../utils/time.js";
 
 const BLOCKING_STATUSES = ["pending", "scheduled", "confirmed", "checked_in", "in_treatment"];
+const BOOKING_DURATION_MINUTES = APPOINTMENT_SLOT_MINUTES;
 
 function httpError(message, statusCode = 400) {
   const err = new Error(message);
@@ -31,10 +31,7 @@ function sameId(a, b) {
 }
 
 function hasTimeConflict(appointments, startAt, endAt) {
-  return appointments.some((appointment) => {
-    const blockedEnd = addMinutes(appointment.endAt, TURNOVER_MINUTES);
-    return startAt < blockedEnd && endAt > appointment.startAt;
-  });
+  return appointments.some((appointment) => startAt < appointment.endAt && endAt > appointment.startAt);
 }
 
 function hasDirectTimeConflict(appointments, startAt, endAt) {
@@ -172,10 +169,10 @@ export async function findAvailableSlots({ date, serviceId, excludeAppointmentId
 
       for (
         let startAt = sessionStart;
-        minutesBetween(startAt, sessionEnd) >= service.durationMinutes;
+        minutesBetween(startAt, sessionEnd) >= BOOKING_DURATION_MINUTES;
         startAt = addMinutes(startAt, APPOINTMENT_SLOT_MINUTES)
       ) {
-        const endAt = addMinutes(startAt, service.durationMinutes);
+        const endAt = addMinutes(startAt, BOOKING_DURATION_MINUTES);
 
         if (
           !hasTimeConflict(roomAppointments, startAt, endAt) &&
@@ -196,12 +193,12 @@ function buildSlot({ room, service, startAt, endAt, session }) {
     endAt,
     arrivalAt: calculateArrivalAt(startAt),
     session: session.label,
-    turnoverMinutes: service.transitionTime ?? TURNOVER_MINUTES,
+    turnoverMinutes: 0,
     service: {
       _id: service._id,
       name: service.name,
-      durationMinutes: service.durationMinutes,
-      transitionTime: service.transitionTime ?? TURNOVER_MINUTES,
+      durationMinutes: BOOKING_DURATION_MINUTES,
+      transitionTime: 0,
       price: service.price,
       requiresPrepayment: service.requiresPrepayment
     },
