@@ -22,7 +22,7 @@ import {
 
 const router = Router();
 const STAFF_ROLES = new Set(["receptionist", "admin", "nurse"]);
-const LOCKED_APPOINTMENT_STATUSES = new Set(["rejected"]);
+const LOCKED_APPOINTMENT_STATUSES = new Set();
 
 const populateAppointment = [
   { path: "patient", select: "fullName email phone" },
@@ -223,8 +223,8 @@ router.patch("/:id/reschedule", async (req, res, next) => {
       startAt: data.startAt,
       roomId: data.roomId
     });
-    if (previousStatus === "pending") {
-      updated.status = "pending";
+    if (["pending", "rejected"].includes(previousStatus)) {
+      updated.status = previousStatus;
       await updated.save();
     }
 
@@ -291,7 +291,7 @@ router.patch("/:id/status", authorize("receptionist", "admin", "nurse"), async (
     assertAppointmentCanChange(appointment, req.user);
     await assertNotPastCheckIn(appointment);
 
-    if (["checked_in", "in_treatment", "completed"].includes(data.status) && ["pending", "waitlisted"].includes(appointment.status)) {
+    if (["checked_in", "in_treatment", "completed"].includes(data.status) && ["pending", "waitlisted", "rejected"].includes(appointment.status)) {
       const err = new Error("Cần chấp nhận lịch hẹn trước khi cập nhật trạng thái khám.");
       err.statusCode = 409;
       throw err;
@@ -318,10 +318,11 @@ router.patch("/:id/status", authorize("receptionist", "admin", "nurse"), async (
       appointment.cancelledBy = req.user._id;
       appointment.cancelledByRole = req.user.role;
       appointment.cancellationReason = data.note || (data.status === "rejected" ? "Lễ tân từ chối lịch hẹn." : appointment.cancellationReason);
-    } else if (previousStatus === "cancelled") {
+    } else if (["cancelled", "rejected"].includes(previousStatus)) {
       appointment.cancelledAt = undefined;
       appointment.cancelledBy = undefined;
       appointment.cancelledByRole = undefined;
+      appointment.cancellationReason = undefined;
     }
     await appointment.save();
     if (["cancelled", "rejected", "waitlisted"].includes(data.status) && appointment.appointmentSlot) {

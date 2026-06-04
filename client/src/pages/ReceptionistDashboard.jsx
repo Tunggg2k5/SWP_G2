@@ -18,6 +18,7 @@ const receptionStatusActionOptions = [
 
 const scheduleStatuses = new Set(["scheduled", "confirmed", "checked_in", "in_treatment", "completed", "cancelled", "no_show"]);
 const statusActionValues = new Set(receptionStatusActionOptions.map((option) => option.value));
+const intakeStatuses = new Set(["pending", "rejected"]);
 const duplicateContactStatuses = new Set(["pending", "scheduled", "confirmed", "checked_in", "in_treatment"]);
 
 const genderOptions = [
@@ -235,9 +236,10 @@ export default function ReceptionistDashboard() {
   }
 
   const filteredBaseAppointments = appointments.filter((appointment) => matchesAppointmentFilters(appointment, appointmentSearch, roomFilter));
-  const pendingAppointments = filteredBaseAppointments.filter((appointment) => appointment.status === "pending");
+  const pendingAppointments = filteredBaseAppointments.filter((appointment) => intakeStatuses.has(appointment.status));
   const scheduleAppointments = filteredBaseAppointments.filter((appointment) => scheduleStatuses.has(appointment.status));
   const pendingIntakeCount = appointments.filter((appointment) => appointment.status === "pending").length;
+  const rejectedIntakeCount = appointments.filter((appointment) => appointment.status === "rejected").length;
   const acceptedCount = appointments.filter((appointment) => scheduleStatuses.has(appointment.status)).length;
   const duplicateContactCount = pendingAppointments.filter((appointment) => duplicateBookingInfo(appointment, appointments).shouldContact).length;
   const checkedInCount = appointments.filter((appointment) => appointment.status === "checked_in").length;
@@ -279,6 +281,7 @@ export default function ReceptionistDashboard() {
 
           <div className="metrics-grid compact-grid">
             <ReceptionMetric icon={ClipboardList} label="Chờ xác nhận" value={pendingIntakeCount} />
+            <ReceptionMetric icon={ClipboardList} label="Đã từ chối" value={rejectedIntakeCount} />
             <ReceptionMetric icon={CalendarDays} label="Đã chấp nhận" value={acceptedCount} />
             <ReceptionMetric icon={PhoneCall} label="Cần liên hệ" value={duplicateContactCount} />
           </div>
@@ -328,9 +331,9 @@ export default function ReceptionistDashboard() {
                     <div className="appointment-card-actions">
                       <div className="appointment-intake-actions">
                         <button className="button small primary" onClick={() => receptionDecision(appointment, "confirmed")}>
-                          Chấp nhận
+                          {appointment.status === "rejected" ? "Chấp nhận lại" : "Chấp nhận"}
                         </button>
-                        <button className="button small danger" onClick={() => receptionDecision(appointment, "rejected")}>
+                        <button className="button small danger" disabled={appointment.status === "rejected"} onClick={() => receptionDecision(appointment, "rejected")}>
                           Từ chối
                         </button>
                       </div>
@@ -370,7 +373,7 @@ export default function ReceptionistDashboard() {
               })}
             </div>
           ) : (
-            <EmptyState title="Không có lịch chờ xác nhận" text="Các lịch đã chấp nhận sẽ nằm ở chức năng Lịch khám." />
+            <EmptyState title="Không có lịch chờ xử lý" text="Các lịch đã chấp nhận sẽ nằm ở chức năng Lịch khám." />
           )}
         </section>
       )}
