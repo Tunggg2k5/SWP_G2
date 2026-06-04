@@ -23,7 +23,7 @@ export default function BookingPage() {
   const [serviceId, setServiceId] = useState("");
   const [date, setDate] = useState(minDate);
   const [shift, setShift] = useState("all");
-  const [dentistId, setDentistId] = useState("all");
+  const [dentistId, setDentistId] = useState("");
   const [slots, setSlots] = useState([]);
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
@@ -66,7 +66,11 @@ export default function BookingPage() {
 
     try {
       const res = await api.get("/availability", { params: { serviceId, date } });
-      setSlots(res.data.slots);
+      const nextSlots = res.data.slots || [];
+      setSlots(nextSlots);
+      setDentistId((current) => (
+        nextSlots.some((slot) => slot.dentist?._id === current) ? current : ""
+      ));
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -118,8 +122,9 @@ export default function BookingPage() {
     new Map(slots.map((slot) => [slot.dentist?._id, slot.dentist]).filter(([id]) => id)).values()
   );
   const filteredSlots = slots.filter((slot) => {
+    if (!dentistId) return false;
     const matchesShift = shift === "all" || slot.session === shift;
-    const matchesDentist = dentistId === "all" || slot.dentist?._id === dentistId;
+    const matchesDentist = slot.dentist?._id === dentistId;
     return matchesShift && matchesDentist;
   });
 
@@ -163,7 +168,7 @@ export default function BookingPage() {
           <label className="field">
             <span>Bác sĩ</span>
             <select value={dentistId} onChange={(e) => setDentistId(e.target.value)}>
-              <option value="all">Tất cả bác sĩ</option>
+              <option value="">Chọn bác sĩ</option>
               {dentists.map((dentist) => (
                 <option value={dentist._id} key={dentist._id}>
                   {dentist.fullName}
@@ -199,11 +204,13 @@ export default function BookingPage() {
       <section className="panel">
         <div className="section-title">
           <DoorOpen size={20} />
-          <h3>Lịch trống theo phòng</h3>
+          <h3>Lịch trống theo bác sĩ</h3>
         </div>
 
         {loading ? (
           <div className="empty-state">Đang tải lịch trống...</div>
+        ) : !dentistId ? (
+          <EmptyState title="Chọn bác sĩ để xem slot" text="Sau khi chọn bác sĩ, hệ thống chỉ hiển thị các giờ trống của bác sĩ đó." />
         ) : filteredSlots.length ? (
           <div className="slot-grid">
             {filteredSlots.map((slot) => (
