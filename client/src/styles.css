@@ -1360,6 +1360,29 @@ textarea {
   box-shadow: 0 14px 32px rgba(8, 127, 140, 0.08);
 }
 
+.reception-appointment-card.needs-contact {
+  border-left-color: var(--warning);
+}
+
+.duplicate-contact-alert {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 7px 9px;
+  border: 1px solid #ffd89b;
+  border-radius: var(--radius);
+  background: #fff8e8;
+  color: #91610c;
+  font-size: 0.86rem;
+  font-weight: 850;
+}
+
+.duplicate-contact-alert svg {
+  flex: 0 0 auto;
+}
+
 .appointment-card-main,
 .appointment-card-actions,
 .appointment-slot-box {

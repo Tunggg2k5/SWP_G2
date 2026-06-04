@@ -131,7 +131,7 @@ async function assertAppointmentResourcesAvailable({ patientId, dentistId, nurse
   }
 }
 
-export async function findAvailableSlots({ date, serviceId, excludeAppointmentId }) {
+export async function findAvailableSlots({ date, serviceId, excludeAppointmentId, includeBooked = false }) {
   if (!isWorkingDate(date)) {
     return [];
   }
@@ -174,11 +174,14 @@ export async function findAvailableSlots({ date, serviceId, excludeAppointmentId
       ) {
         const endAt = addMinutes(startAt, BOOKING_DURATION_MINUTES);
 
-        if (
-          !hasTimeConflict(roomAppointments, startAt, endAt) &&
-          !hasTimeConflict(dentistAppointments, startAt, endAt)
-        ) {
-          slots.push(buildSlot({ room, service, startAt, endAt, session }));
+        const conflictingAppointments = uniqueAppointments([
+          ...roomAppointments.filter((appointment) => hasDirectTimeConflict([appointment], startAt, endAt)),
+          ...dentistAppointments.filter((appointment) => hasDirectTimeConflict([appointment], startAt, endAt))
+        ]);
+        const isBooked = conflictingAppointments.length > 0;
+
+        if (includeBooked || !isBooked) {
+          slots.push(buildSlot({ room, service, startAt, endAt, session, conflictingAppointments }));
         }
       }
     }
@@ -187,12 +190,14 @@ export async function findAvailableSlots({ date, serviceId, excludeAppointmentId
   return slots.sort((a, b) => a.startAt.getTime() - b.startAt.getTime());
 }
 
-function buildSlot({ room, service, startAt, endAt, session }) {
+function buildSlot({ room, service, startAt, endAt, session, conflictingAppointments = [] }) {
   return {
     startAt,
     endAt,
     arrivalAt: calculateArrivalAt(startAt),
     session: session.label,
+    isBooked: conflictingAppointments.length > 0,
+    bookedCount: conflictingAppointments.length,
     turnoverMinutes: 0,
     service: {
       _id: service._id,
@@ -210,6 +215,10 @@ function buildSlot({ room, service, startAt, endAt, session }) {
     },
     dentist: room.assignedDentist
   };
+}
+
+function uniqueAppointments(appointments) {
+  return Array.from(new Map(appointments.map((appointment) => [appointment._id.toString(), appointment])).values());
 }
 
 async function selectAvailableNurse(startAt, endAt, date) {
@@ -231,8 +240,9 @@ export async function createAppointmentFromSlot({ requester, patientId, serviceI
   }
 
   const requestedStart = startAt ? new Date(startAt) : null;
+  const canRequestBookedSlot = Boolean(requestedStart) && (requester.role === "patient" || channel === "online");
   const [slots, patientAppointments] = await Promise.all([
-    findAvailableSlots({ date, serviceId }),
+    findAvailableSlots({ date, serviceId, includeBooked: canRequestBookedSlot }),
     getPatientAppointmentsForDate(patient._id, date)
   ]);
   const selected = requestedStart
@@ -251,14 +261,16 @@ export async function createAppointmentFromSlot({ requester, patientId, serviceI
 
   const nurse = await selectAvailableNurse(selected.startAt, selected.endAt, date);
   const service = await DentalService.findById(serviceId).lean();
-  await assertAppointmentResourcesAvailable({
-    patientId: patient._id,
-    dentistId: selected.dentist._id,
-    nurseId: nurse?._id,
-    roomId: selected.room._id,
-    startAt: selected.startAt,
-    endAt: selected.endAt
-  });
+  if (!canRequestBookedSlot) {
+    await assertAppointmentResourcesAvailable({
+      patientId: patient._id,
+      dentistId: selected.dentist._id,
+      nurseId: nurse?._id,
+      roomId: selected.room._id,
+      startAt: selected.startAt,
+      endAt: selected.endAt
+    });
+  }
 
   const appointmentSlot = await AppointmentSlot.create({
     dentist: selected.dentist._id,

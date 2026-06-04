@@ -65,7 +65,7 @@ export default function BookingPage() {
     setLoading(true);
 
     try {
-      const res = await api.get("/availability", { params: { serviceId, date } });
+      const res = await api.get("/availability", { params: { serviceId, date, includeBooked: true } });
       const nextSlots = res.data.slots || [];
       setSlots(nextSlots);
       setDentistId((current) => (
@@ -110,7 +110,7 @@ export default function BookingPage() {
         roomId: slot.room._id,
         note
       });
-      setMessage("Đã gửi yêu cầu đặt lịch. Lễ tân sẽ tiếp nhận, xác nhận hoặc từ chối nếu cần.");
+      setMessage("Đã gửi yêu cầu đặt lịch. Nếu giờ này đã có người chọn, lễ tân sẽ liên hệ để xác nhận lại.");
       await searchSlots({ preserveFeedback: true });
     } catch (err) {
       setError(getErrorMessage(err));

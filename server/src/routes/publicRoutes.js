@@ -99,7 +99,8 @@ router.get("/availability", async (req, res, next) => {
   try {
     const schema = z.object({
       date: futureDateInputSchema,
-      serviceId: objectIdSchema
+      serviceId: objectIdSchema,
+      includeBooked: z.enum(["true", "false"]).optional().transform((value) => value === "true")
     });
     const data = schema.parse(req.query);
     const slots = await findAvailableSlots(data);
