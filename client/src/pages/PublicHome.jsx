@@ -1,13 +1,16 @@
 import {
   CalendarDays,
   CheckCircle2,
+  ChevronRight,
   Clock,
-  DoorOpen,
-  LogIn,
+  Mail,
   MapPin,
+  PhoneCall,
+  Send,
   ShieldCheck,
+  Sparkles,
+  Star,
   Stethoscope,
-  UserPlus,
   UsersRound
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -19,12 +22,11 @@ import { formatMoney } from "../utils/format.js";
 import { firstError, validateName, validatePhone } from "../utils/validation.js";
 
 const branchMap = {
-  "TP. Hồ Chí Minh": ["DAS Quận 1 - 150 Hai Bà Trưng"]
+  "TP. Hồ Chí Minh": ["SmileCare Quận 1 - 150 Hai Bà Trưng"]
 };
 
-const provinceOptions = Object.keys(branchMap);
-const needOptions = ["Tư vấn bác sĩ", "Trám răng", "Nhổ răng khôn", "Lấy cao răng", "Tẩy trắng răng"];
-const salutationOptions = ["Anh", "Chị", "Other"];
+const salutationOptions = ["Anh", "Chị", "Khác"];
+const fallbackServiceNames = ["Cấy ghép Implant", "Thẩm mỹ răng sứ", "Chỉnh nha niềng răng", "Tẩy trắng răng"];
 
 const fallbackDentists = [
   {
@@ -37,13 +39,77 @@ const fallbackDentists = [
     _id: "fallback-dentist-2",
     fullName: "BS. Trần Hoàng Nam",
     specialty: "Cấy ghép Implant",
-    description: "Phụ trách khám chuyên sâu, điều trị phục hồi răng mất và phẫu thuật miệng."
+    description: "Phụ trách khám chuyên sâu, phục hồi răng mất và phẫu thuật miệng."
   },
   {
     _id: "fallback-dentist-3",
     fullName: "BS. Lê Thanh Vy",
     specialty: "Nha khoa tổng quát",
     description: "Khám ban đầu, tư vấn dịch vụ và chăm sóc răng miệng định kỳ."
+  }
+];
+
+const serviceFallback = [
+  {
+    name: "Cấy ghép Implant",
+    description: "Phục hồi răng mất bằng công nghệ Implant hiện đại, giúp ăn nhai tự nhiên.",
+    accent: "implant"
+  },
+  {
+    name: "Thẩm mỹ răng sứ",
+    description: "Thiết kế nụ cười hài hòa, màu sắc tự nhiên và phù hợp khuôn mặt.",
+    accent: "cosmetic"
+  },
+  {
+    name: "Chỉnh nha niềng răng",
+    description: "Điều chỉnh khớp cắn, cải thiện thẩm mỹ và sức khỏe răng miệng lâu dài.",
+    accent: "ortho"
+  },
+  {
+    name: "Điều trị tổng quát",
+    description: "Khám định kỳ, trám răng, lấy cao răng và tư vấn chăm sóc tại nhà.",
+    accent: "general"
+  }
+];
+
+const faqs = [
+  {
+    question: "Chi phí cấy ghép Implant tại SmileCare là bao nhiêu?",
+    answer:
+      "Chi phí phụ thuộc vào loại trụ, tình trạng xương hàm và kế hoạch điều trị. Lễ tân sẽ liên hệ tư vấn chi tiết sau khi bạn gửi thông tin."
+  },
+  {
+    question: "Niềng răng mất bao lâu và có đau không?",
+    answer:
+      "Thời gian thường dao động theo tình trạng răng. Bác sĩ sẽ kiểm tra, lên lộ trình và hướng dẫn cách giảm ê nhẹ trong giai đoạn đầu."
+  },
+  {
+    question: "Tôi có thể đặt lịch online rồi đổi giờ sau không?",
+    answer:
+      "Bạn có thể đặt lịch online. Nếu cần đổi giờ, lễ tân sẽ hỗ trợ dời lịch sang slot phù hợp theo lịch làm việc của bác sĩ."
+  }
+];
+
+const testimonials = [
+  {
+    name: "Chị Minh Anh",
+    service: "Cấy ghép Implant",
+    text: "Tôi đã cấy 2 răng Implant tại SmileCare. Bác sĩ rất tận tâm, quy trình chuyên nghiệp và ăn nhai thoải mái."
+  },
+  {
+    name: "Anh Tuấn Hưng",
+    service: "Niềng răng Invisalign",
+    text: "Niềng răng trong suốt rất tiện lợi. Sau 18 tháng hàm răng đều đẹp hơn, đội ngũ theo dõi sát."
+  },
+  {
+    name: "Chị Hải Yến",
+    service: "Bọc răng sứ thẩm mỹ",
+    text: "Màu răng tự nhiên, nụ cười sáng hơn nhưng vẫn hài hòa. Tôi rất hài lòng với kết quả."
+  },
+  {
+    name: "Bé Gia Bảo",
+    service: "Nha khoa trẻ em",
+    text: "Bé nhà mình rất sợ đi nha sĩ nhưng khi đến đây lại hợp tác, các cô chú nhẹ nhàng và thân thiện."
   }
 ];
 
@@ -57,56 +123,40 @@ function getClinicBranches() {
   );
 }
 
-function getServiceSummary(service) {
-  if (!service) return "";
-  const duration = `${service.durationMinutes || 30} phút`;
-  const transition = `${service.transitionTime || 10} phút chuyển giao`;
-  return `${duration} + ${transition}`;
+function getServiceCards(services) {
+  if (!services.length) return serviceFallback;
+
+  return services.slice(0, 4).map((service, index) => ({
+    _id: service._id,
+    name: service.name,
+    description: service.description || serviceFallback[index % serviceFallback.length].description,
+    price: service.price,
+    requiresPrepayment: service.requiresPrepayment,
+    accent: serviceFallback[index % serviceFallback.length].accent
+  }));
 }
 
 export default function PublicHome() {
   const { services, dentists, rooms } = usePublicBootstrap();
   const clinicBranches = useMemo(() => getClinicBranches(), []);
-  const dentistCards = dentists.length ? dentists.slice(0, 6) : fallbackDentists;
+  const dentistCards = dentists.length ? dentists.slice(0, 3) : fallbackDentists;
+  const serviceCards = useMemo(() => getServiceCards(services), [services]);
+  const [openFaq, setOpenFaq] = useState(0);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [form, setForm] = useState({
     salutation: "Anh",
     fullName: "",
-    phone: ""
+    phone: "",
+    email: "",
+    service: "",
+    note: ""
   });
 
-  const heroHighlights = [
-    {
-      label: "Thông tin phòng khám",
-      value: "1 chi nhánh tại TP. Hồ Chí Minh"
-    },
-    {
-      label: "Profile bác sĩ",
-      value: `${dentists.length || fallbackDentists.length} bác sĩ theo chuyên môn nha khoa`
-    },
-    {
-      label: "Dịch vụ phòng khám",
-      value: `${services.length || 6} dịch vụ khám, điều trị và thẩm mỹ răng`
-    },
-    {
-      label: "Giờ làm việc",
-      value: "Thứ 2 - Thứ 7, 07:00-11:30 và 13:30-17:30"
-    }
-  ];
+  const selectedService = services.find((service) => service._id === form.service);
 
   function updateForm(field, value) {
-    setForm((current) => {
-      if (field === "province") {
-        return {
-          ...current,
-          province: value,
-          branch: branchMap[value]?.[0] || ""
-        };
-      }
-
-      return { ...current, [field]: value };
-    });
+    setForm((current) => ({ ...current, [field]: value }));
   }
 
   async function submitConsultation(event) {
@@ -114,11 +164,7 @@ export default function PublicHome() {
     setMessage("");
     setError("");
 
-    const validationError = firstError(
-      validateName(form.fullName),
-      validatePhone(form.phone)
-    );
-
+    const validationError = firstError(validateName(form.fullName), validatePhone(form.phone));
     if (validationError) {
       setError(validationError);
       return;
@@ -128,17 +174,23 @@ export default function PublicHome() {
       await api.post("/consultations", {
         fullName: form.fullName,
         phone: form.phone,
+        email: form.email || undefined,
+        service: form.service || undefined,
         message: [
           `Danh xưng: ${form.salutation}`,
-          `Chi nhánh: ${branchMap[provinceOptions[0]][0]}`,
-          "Khách muốn yêu cầu tư vấn đặt lịch."
+          `Dịch vụ quan tâm: ${selectedService?.name || "Chưa chọn"}`,
+          `Chi nhánh: ${branchMap["TP. Hồ Chí Minh"][0]}`,
+          form.note ? `Ghi chú: ${form.note}` : "Khách muốn nhận tư vấn đặt lịch."
         ].join(". ")
       });
 
       setForm({
         salutation: "Anh",
         fullName: "",
-        phone: ""
+        phone: "",
+        email: "",
+        service: "",
+        note: ""
       });
       setMessage("Đã ghi nhận yêu cầu tư vấn. Lễ tân sẽ liên hệ để xác nhận lịch.");
     } catch (err) {
@@ -147,64 +199,242 @@ export default function PublicHome() {
   }
 
   return (
-    <div className="clinic-portal">
+    <div className="smile-guest-page">
       <Feedback error={error} message={message} onClear={() => { setError(""); setMessage(""); }} />
 
-      <header className="portal-nav">
-        <button className="portal-brand portal-brand-button" type="button" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-          <span className="portal-brand-mark">DAS</span>
-          <span>Nha khoa DAS</span>
-        </button>
+      <header className="smile-header">
+        <a className="smile-brand" href="#home" aria-label="SmileCare">
+          SmileCare
+        </a>
 
-        <nav className="portal-nav-links" aria-label="Điều hướng public">
-          <a href="#booking">Yêu cầu tư vấn đặt lịch</a>
-          <a href="#clinics">Phòng khám</a>
-          <a href="#dentists">Bác sĩ</a>
+        <nav className="smile-nav" aria-label="Điều hướng khách">
+          <a href="#home">Trang chủ</a>
           <a href="#services">Dịch vụ</a>
+          <a href="#about">Giới thiệu</a>
+          <a href="#contact">Liên hệ</a>
         </nav>
 
-        <div className="portal-actions">
-          <span className="button ghost hotline-display">
-            1900 6899
-          </span>
-          <Link className="button ghost" to="/login">
-            <LogIn size={17} />
-            Đăng nhập
-          </Link>
-          <Link className="button primary" to="/register">
-            <UserPlus size={17} />
-            Tạo tài khoản
+        <div className="smile-header-actions">
+          <a className="smile-phone" href="tel:19008888">
+            <PhoneCall size={18} />
+            <span>1900 8888</span>
+          </a>
+          <Link className="smile-primary-link" to="/booking">
+            Đặt lịch ngay
           </Link>
         </div>
       </header>
 
-      <main className="portal-main">
-        <section className="portal-hero-band" id="booking">
-          <div className="portal-copy">
-            <p className="eyebrow">Dental Appointment System</p>
-            <h1>Thông tin và đặt lịch phòng khám nha khoa</h1>
+      <main>
+        <section className="smile-hero" id="home">
+          <div className="smile-hero-copy">
+            <span className="smile-pill">
+              <ShieldCheck size={16} />
+              Nha khoa uy tín hàng đầu
+            </span>
+            <h1>
+              <span>Nụ Cười Rạng Rỡ,</span>
+              <span>Tự Tin Tỏa Sáng</span>
+            </h1>
             <p>
-              Khách hàng có thể xem thông tin phòng khám, hồ sơ bác sĩ, dịch vụ nha khoa và gửi yêu cầu tư vấn đặt lịch
-              trước khi tạo tài khoản bệnh nhân.
+              SmileCare mang đến giải pháp chăm sóc răng miệng toàn diện với công nghệ hiện đại và đội ngũ bác sĩ giàu kinh nghiệm.
             </p>
+            <div className="smile-hero-actions">
+              <a className="smile-primary-link hero-action" href="#contact">
+                Đăng ký tư vấn miễn phí
+                <ChevronRight size={18} />
+              </a>
+              <a className="smile-secondary-link" href="#services">
+                Khám phá dịch vụ
+                <ChevronRight size={18} />
+              </a>
+            </div>
+            <div className="smile-stats" aria-label="Thống kê SmileCare">
+              <span>
+                <strong>15+</strong>
+                Năm Kinh Nghiệm
+              </span>
+              <span>
+                <strong>50.000+</strong>
+                Khách Hàng
+              </span>
+              <span>
+                <strong>98%</strong>
+                Hài Lòng
+              </span>
+              <span>
+                <strong>{dentists.length || 20}+</strong>
+                Bác Sĩ Chuyên Khoa
+              </span>
+            </div>
+          </div>
 
-            <div className="portal-stat-grid">
-              {heroHighlights.map((item) => (
-                <article className="portal-stat" key={item.label}>
-                  <strong>{item.label}</strong>
-                  <span>{item.value}</span>
+          <div className="smile-hero-gallery" aria-label="Hình ảnh phòng khám SmileCare">
+            <div className="smile-photo smile-photo-main" />
+            <div className="smile-photo smile-photo-smile" />
+            <div className="smile-photo smile-photo-room" />
+          </div>
+        </section>
+
+        <section className="smile-section smile-services" id="services">
+          <div className="smile-section-heading centered">
+            <span className="smile-pill compact">
+              <Sparkles size={15} />
+              Dịch vụ của chúng tôi
+            </span>
+            <h2>Chăm Sóc Toàn Diện Cho Nụ Cười Của Bạn</h2>
+            <p>Từ kiểm tra định kỳ đến các giải pháp thẩm mỹ nha khoa, SmileCare đồng hành cùng bạn trong từng bước điều trị.</p>
+          </div>
+
+          <div className="smile-service-grid">
+            {serviceCards.map((service, index) => (
+              <article className={`smile-service-card ${index === 0 ? "large" : ""} tone-${service.accent}`} key={service._id || service.name}>
+                <span className="smile-icon-bubble">
+                  <Stethoscope size={22} />
+                </span>
+                <h3>{service.name}</h3>
+                <p>{service.description}</p>
+                <small>
+                  30 phút
+                  {service.price ? ` - ${formatMoney(service.price)}` : ""}
+                </small>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="smile-section smile-about" id="about">
+          <div className="smile-about-copy">
+            <span className="smile-pill compact">
+              <CheckCircle2 size={15} />
+              Về SmileCare
+            </span>
+            <h2>Không gian điều trị hiện đại, lịch hẹn rõ ràng</h2>
+            <p>
+              Khách hàng có thể xem dịch vụ, bác sĩ, phòng khám và gửi yêu cầu tư vấn online. Sau khi đăng ký tài khoản, bệnh nhân có thể đặt
+              lịch trực tiếp theo bác sĩ và slot 30 phút.
+            </p>
+            <div className="smile-feature-list">
+              <span>
+                <Clock size={18} />
+                Thứ 2 - Thứ 7, 07:00-11:30 và 13:30-17:30
+              </span>
+              <span>
+                <UsersRound size={18} />
+                {dentistCards.length} bác sĩ theo chuyên môn nha khoa
+              </span>
+              <span>
+                <ShieldCheck size={18} />
+                Hồ sơ và lịch hẹn được phân quyền theo vai trò
+              </span>
+            </div>
+          </div>
+
+          <div className="smile-clinic-panel">
+            {clinicBranches.map((clinic) => (
+              <article key={clinic.id}>
+                <MapPin size={20} />
+                <div>
+                  <strong>{clinic.branch}</strong>
+                  <span>{clinic.province}</span>
+                </div>
+              </article>
+            ))}
+            <article>
+              <CalendarDays size={20} />
+              <div>
+                <strong>{rooms.length || 5} phòng điều trị</strong>
+                <span>Điều phối lịch khám theo bác sĩ, phòng và slot.</span>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section className="smile-section smile-dentists">
+          <div className="smile-section-heading">
+            <span className="smile-pill compact">
+              <UsersRound size={15} />
+              Đội ngũ bác sĩ
+            </span>
+            <h2>Bác sĩ đồng hành theo từng kế hoạch điều trị</h2>
+          </div>
+
+          <div className="smile-dentist-grid">
+            {dentistCards.map((dentist) => (
+              <article className="smile-dentist-card" key={dentist._id}>
+                <span>{dentist.fullName?.trim()?.[0]?.toUpperCase() || "B"}</span>
+                <h3>{dentist.fullName}</h3>
+                <strong>{dentist.specialty || "Nha khoa tổng quát"}</strong>
+                <p>{dentist.description || "Khám, tư vấn và theo dõi kế hoạch điều trị cho bệnh nhân."}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="smile-section smile-faq">
+          <div className="smile-section-heading">
+            <span className="smile-pill compact gold">
+              <Sparkles size={15} />
+              Tư vấn nhanh
+            </span>
+            <h2>Giải Đáp Thắc Mắc Về Sức Khỏe Răng Miệng</h2>
+          </div>
+
+          <div className="smile-faq-layout">
+            <div className="smile-faq-photo" />
+            <div className="smile-faq-list">
+              {faqs.map((item, index) => (
+                <article className={openFaq === index ? "open" : ""} key={item.question}>
+                  <button type="button" onClick={() => setOpenFaq(openFaq === index ? -1 : index)}>
+                    <span>{item.question}</span>
+                    <strong>{openFaq === index ? "×" : "+"}</strong>
+                  </button>
+                  {openFaq === index && <p>{item.answer}</p>}
                 </article>
               ))}
             </div>
           </div>
+        </section>
 
-          <form className="portal-form-panel" onSubmit={submitConsultation}>
-            <div className="section-title tight-title">
-              <CalendarDays size={20} />
-            <h2>Yêu cầu tư vấn đặt lịch</h2>
-            </div>
+        <section className="smile-section smile-testimonials">
+          <div className="smile-section-heading centered">
+            <span className="smile-pill compact gold">
+              <Star size={15} />
+              Khách hàng nói gì
+            </span>
+            <h2>Hơn 50.000 Khách Hàng Đã Tin Tưởng SmileCare</h2>
+          </div>
+          <div className="smile-testimonial-grid">
+            {testimonials.map((item) => (
+              <article key={item.name}>
+                <div className="smile-stars" aria-label="5 sao">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <Star size={16} fill="currentColor" key={index} />
+                  ))}
+                </div>
+                <p>“{item.text}”</p>
+                <div>
+                  <span>{item.name[0]}</span>
+                  <strong>{item.name}</strong>
+                  <small>{item.service}</small>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
 
-            <div className="segmented-control" role="radiogroup" aria-label="Danh xưng">
+        <section className="smile-section smile-contact" id="contact">
+          <div className="smile-section-heading centered">
+            <span className="smile-pill compact">
+              <CalendarDays size={15} />
+              Đặt lịch tư vấn
+            </span>
+            <h2>Đăng Ký Nhận Tư Vấn Miễn Phí Từ Chuyên Gia</h2>
+            <p>Để lại thông tin, đội ngũ bác sĩ SmileCare sẽ liên hệ tư vấn trong vòng 24h.</p>
+          </div>
+
+          <form className="smile-consult-form" onSubmit={submitConsultation}>
+            <div className="smile-segmented" role="radiogroup" aria-label="Danh xưng">
               {salutationOptions.map((option) => (
                 <label key={option}>
                   <input
@@ -219,127 +449,105 @@ export default function PublicHome() {
               ))}
             </div>
 
-            <div className="portal-form-grid">
+            <label>
+              <span>Họ và tên *</span>
               <input
                 value={form.fullName}
                 onChange={(event) => updateForm("fullName", event.target.value)}
-                placeholder="Họ tên"
+                placeholder="Nguyễn Văn A"
                 required
                 maxLength={120}
               />
+            </label>
+            <label>
+              <span>Số điện thoại *</span>
               <input
                 type="tel"
                 value={form.phone}
                 onChange={(event) => updateForm("phone", event.target.value)}
-                placeholder="Số điện thoại"
+                placeholder="0912 345 678"
                 required
                 maxLength={13}
               />
-            </div>
-
-            <button className="button primary full">
-              <CalendarDays size={17} />
-              Gửi yêu cầu
+            </label>
+            <label>
+              <span>Email</span>
+              <input
+                type="email"
+                value={form.email}
+                onChange={(event) => updateForm("email", event.target.value)}
+                placeholder="example@email.com"
+                maxLength={160}
+              />
+            </label>
+            <label>
+              <span>Dịch vụ quan tâm</span>
+              <select value={form.service} onChange={(event) => updateForm("service", event.target.value)}>
+                <option value="">-- Chọn dịch vụ --</option>
+                {services.map((service) => (
+                  <option value={service._id} key={service._id}>
+                    {service.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="wide">
+              <span>Ghi chú thêm</span>
+              <textarea
+                value={form.note}
+                onChange={(event) => updateForm("note", event.target.value)}
+                placeholder="Mô tả ngắn gọn tình trạng răng miệng hoặc yêu cầu của bạn..."
+                rows="4"
+                maxLength={500}
+              />
+              <small>{form.note.length}/500 ký tự</small>
+            </label>
+            <button className="smile-submit" type="submit">
+              <Send size={18} />
+              Gửi đăng ký tư vấn miễn phí
             </button>
           </form>
         </section>
-
-        <section className="portal-section public-info-section" id="clinics">
-          <div className="portal-section-heading">
-            <p className="eyebrow">Thông tin phòng khám</p>
-            <h2>Hệ thống chi nhánh DAS</h2>
-          </div>
-          <div className="clinic-info-grid">
-            {clinicBranches.map((clinic) => (
-              <article className="clinic-info-card" key={clinic.id}>
-                <MapPin size={20} />
-                <div>
-                  <strong>{clinic.branch}</strong>
-                <span>{clinic.province} - Làm việc Thứ 2 - Thứ 7, 07:00-11:30 và 13:30-17:30</span>
-                </div>
-              </article>
-            ))}
-          </div>
-          <div className="clinic-feature-row">
-            <article>
-              <DoorOpen size={20} />
-              <strong>{rooms.length || 5} phòng điều trị</strong>
-              <span>Phòng khám được quản lý trạng thái để hỗ trợ đặt lịch chính xác.</span>
-            </article>
-            <article>
-              <Clock size={20} />
-              <strong>Lịch làm việc rõ ràng</strong>
-              <span>Thứ 2 - Thứ 7, ca sáng 07:00-11:30 và ca chiều 13:30-17:30.</span>
-            </article>
-            <article>
-              <ShieldCheck size={20} />
-              <strong>Hồ sơ bảo mật</strong>
-              <span>Thông tin tư vấn và lịch hẹn được xử lý theo vai trò người dùng.</span>
-            </article>
-          </div>
-        </section>
-
-        <section className="portal-section public-info-section" id="dentists">
-          <div className="portal-section-heading">
-            <p className="eyebrow">Profile bác sĩ</p>
-            <h2>Đội ngũ bác sĩ nha khoa</h2>
-          </div>
-          <div className="dentist-profile-grid">
-            {dentistCards.map((dentist) => (
-              <article className="dentist-profile-card" key={dentist._id}>
-                <div className="dentist-avatar">
-                  <UsersRound size={24} />
-                </div>
-                <div>
-                  <h3>{dentist.fullName}</h3>
-                  <p>{dentist.specialty || "Nha khoa tổng quát"}</p>
-                </div>
-                <ul>
-                  <li>
-                    <CheckCircle2 size={15} />
-                    <span>{dentist.description || "Khám, tư vấn và theo dõi kế hoạch điều trị cho bệnh nhân."}</span>
-                  </li>
-                  <li>
-                    <CheckCircle2 size={15} />
-                    <span>Lịch khám được điều phối theo phòng và dịch vụ phù hợp.</span>
-                  </li>
-                </ul>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="portal-section public-info-section" id="services">
-          <div className="portal-section-heading">
-            <p className="eyebrow">Thông tin dịch vụ phòng khám</p>
-            <h2>Dịch vụ nha khoa đang phục vụ</h2>
-          </div>
-
-          <div className="service-grid public-service-grid">
-            {services.slice(0, 6).map((service) => (
-              <article className="service-card" key={service._id}>
-                <Stethoscope size={20} />
-                <strong>{service.name}</strong>
-                <span>{getServiceSummary(service)}</span>
-                <small>{service.requiresPrepayment ? formatMoney(service.price) : "Tư vấn chi phí sau khám"}</small>
-              </article>
-            ))}
-          </div>
-
-          {!services.length && (
-            <div className="service-grid public-service-grid">
-              {needOptions.slice(1).map((service) => (
-                <article className="service-card" key={service}>
-                  <Stethoscope size={20} />
-                  <strong>{service}</strong>
-                  <span>Thời lượng được tư vấn theo tình trạng răng miệng.</span>
-                  <small>Liên hệ lễ tân để nhận chi phí dự kiến</small>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
       </main>
+
+      <footer className="smile-footer">
+        <div className="smile-footer-grid">
+          <div>
+            <strong className="smile-footer-brand">Smile<span>Care</span></strong>
+            <p>Nha khoa SmileCare - Đồng hành cùng nụ cười Việt với dịch vụ chăm sóc răng miệng chất lượng cao.</p>
+            <form className="smile-newsletter">
+              <input placeholder="Email của bạn" aria-label="Email nhận tin" />
+              <button type="button" aria-label="Đăng ký nhận tin">
+                <Mail size={18} />
+              </button>
+            </form>
+          </div>
+          <div>
+            <h3>Dịch vụ</h3>
+            {fallbackServiceNames.map((item) => (
+              <a href="#services" key={item}>{item}</a>
+            ))}
+          </div>
+          <div>
+            <h3>Về SmileCare</h3>
+            <a href="#about">Giới thiệu</a>
+            <a href="#about">Đội ngũ bác sĩ</a>
+            <a href="#about">Cơ sở vật chất</a>
+            <Link to="/login">Đăng nhập</Link>
+          </div>
+          <div>
+            <h3>Hỗ trợ</h3>
+            <a href="#contact">Câu hỏi thường gặp</a>
+            <Link to="/register">Tạo tài khoản</Link>
+            <Link to="/booking">Hướng dẫn đặt lịch</Link>
+            <a href="tel:19008888">Liên hệ</a>
+          </div>
+        </div>
+        <div className="smile-footer-bottom">
+          <span>© 2026 SmileCare. Tất cả quyền được bảo lưu.</span>
+          <span>Chính sách bảo mật · Điều khoản sử dụng</span>
+        </div>
+      </footer>
     </div>
   );
 }
