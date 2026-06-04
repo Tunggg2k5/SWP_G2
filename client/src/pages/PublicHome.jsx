@@ -3,7 +3,6 @@ import {
   CheckCircle2,
   ChevronRight,
   Clock,
-  Mail,
   MapPin,
   PhoneCall,
   Send,
@@ -26,7 +25,6 @@ const branchMap = {
 };
 
 const salutationOptions = ["Anh", "Chị", "Khác"];
-const fallbackServiceNames = ["Cấy ghép Implant", "Thẩm mỹ răng sứ", "Chỉnh nha niềng răng", "Tẩy trắng răng"];
 
 const fallbackDentists = [
   {
@@ -71,6 +69,17 @@ const serviceFallback = [
     accent: "general"
   }
 ];
+
+function stripServiceDurationText(description = "") {
+  return description
+    .replace(/,?\s*thời lượng(?: dự kiến)?\s*\d+\s*phút\.?/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function newestFirst(items) {
+  return [...items].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+}
 
 const faqs = [
   {
@@ -126,12 +135,11 @@ function getClinicBranches() {
 function getServiceCards(services) {
   if (!services.length) return serviceFallback;
 
-  return services.slice(0, 4).map((service, index) => ({
+  return newestFirst(services).map((service, index) => ({
     _id: service._id,
     name: service.name,
-    description: service.description || serviceFallback[index % serviceFallback.length].description,
+    description: stripServiceDurationText(service.description) || serviceFallback[index % serviceFallback.length].description,
     price: service.price,
-    requiresPrepayment: service.requiresPrepayment,
     accent: serviceFallback[index % serviceFallback.length].accent
   }));
 }
@@ -139,8 +147,9 @@ function getServiceCards(services) {
 export default function PublicHome() {
   const { services, dentists, rooms } = usePublicBootstrap();
   const clinicBranches = useMemo(() => getClinicBranches(), []);
-  const dentistCards = dentists.length ? dentists.slice(0, 3) : fallbackDentists;
+  const dentistCards = dentists.length ? newestFirst(dentists).slice(0, 3) : fallbackDentists;
   const serviceCards = useMemo(() => getServiceCards(services), [services]);
+  const roomCount = rooms.length ? Math.min(rooms.length, 3) : 3;
   const [openFaq, setOpenFaq] = useState(0);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -148,7 +157,6 @@ export default function PublicHome() {
     salutation: "Anh",
     fullName: "",
     phone: "",
-    email: "",
     service: "",
     note: ""
   });
@@ -174,7 +182,6 @@ export default function PublicHome() {
       await api.post("/consultations", {
         fullName: form.fullName,
         phone: form.phone,
-        email: form.email || undefined,
         service: form.service || undefined,
         message: [
           `Danh xưng: ${form.salutation}`,
@@ -188,7 +195,6 @@ export default function PublicHome() {
         salutation: "Anh",
         fullName: "",
         phone: "",
-        email: "",
         service: "",
         note: ""
       });
@@ -219,8 +225,8 @@ export default function PublicHome() {
             <PhoneCall size={18} />
             <span>1900 8888</span>
           </a>
-          <Link className="smile-primary-link" to="/booking">
-            Đặt lịch ngay
+          <Link className="smile-primary-link" to="/login">
+            Đăng nhập
           </Link>
         </div>
       </header>
@@ -255,15 +261,15 @@ export default function PublicHome() {
                 Năm Kinh Nghiệm
               </span>
               <span>
-                <strong>50.000+</strong>
-                Khách Hàng
+                <strong>{roomCount}</strong>
+                Phòng Điều Trị
               </span>
               <span>
                 <strong>98%</strong>
                 Hài Lòng
               </span>
               <span>
-                <strong>{dentists.length || 20}+</strong>
+                <strong>{dentistCards.length}</strong>
                 Bác Sĩ Chuyên Khoa
               </span>
             </div>
@@ -294,10 +300,7 @@ export default function PublicHome() {
                 </span>
                 <h3>{service.name}</h3>
                 <p>{service.description}</p>
-                <small>
-                  30 phút
-                  {service.price ? ` - ${formatMoney(service.price)}` : ""}
-                </small>
+                {service.price !== undefined && service.price !== null && <small>{formatMoney(service.price)}</small>}
               </article>
             ))}
           </div>
@@ -310,10 +313,6 @@ export default function PublicHome() {
               Về SmileCare
             </span>
             <h2>Không gian điều trị hiện đại, lịch hẹn rõ ràng</h2>
-            <p>
-              Khách hàng có thể xem dịch vụ, bác sĩ, phòng khám và gửi yêu cầu tư vấn online. Sau khi đăng ký tài khoản, bệnh nhân có thể đặt
-              lịch trực tiếp theo bác sĩ và slot 30 phút.
-            </p>
             <div className="smile-feature-list">
               <span>
                 <Clock size={18} />
@@ -322,10 +321,6 @@ export default function PublicHome() {
               <span>
                 <UsersRound size={18} />
                 {dentistCards.length} bác sĩ theo chuyên môn nha khoa
-              </span>
-              <span>
-                <ShieldCheck size={18} />
-                Hồ sơ và lịch hẹn được phân quyền theo vai trò
               </span>
             </div>
           </div>
@@ -343,7 +338,7 @@ export default function PublicHome() {
             <article>
               <CalendarDays size={20} />
               <div>
-                <strong>{rooms.length || 5} phòng điều trị</strong>
+                <strong>{roomCount} phòng điều trị</strong>
                 <span>Điều phối lịch khám theo bác sĩ, phòng và slot.</span>
               </div>
             </article>
@@ -471,16 +466,6 @@ export default function PublicHome() {
               />
             </label>
             <label>
-              <span>Email</span>
-              <input
-                type="email"
-                value={form.email}
-                onChange={(event) => updateForm("email", event.target.value)}
-                placeholder="example@email.com"
-                maxLength={160}
-              />
-            </label>
-            <label>
               <span>Dịch vụ quan tâm</span>
               <select value={form.service} onChange={(event) => updateForm("service", event.target.value)}>
                 <option value="">-- Chọn dịch vụ --</option>
@@ -515,17 +500,11 @@ export default function PublicHome() {
           <div>
             <strong className="smile-footer-brand">Smile<span>Care</span></strong>
             <p>Nha khoa SmileCare - Đồng hành cùng nụ cười Việt với dịch vụ chăm sóc răng miệng chất lượng cao.</p>
-            <form className="smile-newsletter">
-              <input placeholder="Email của bạn" aria-label="Email nhận tin" />
-              <button type="button" aria-label="Đăng ký nhận tin">
-                <Mail size={18} />
-              </button>
-            </form>
           </div>
           <div>
             <h3>Dịch vụ</h3>
-            {fallbackServiceNames.map((item) => (
-              <a href="#services" key={item}>{item}</a>
+            {serviceCards.map((item) => (
+              <a href="#services" key={item._id || item.name}>{item.name}</a>
             ))}
           </div>
           <div>
