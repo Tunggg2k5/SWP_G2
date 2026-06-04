@@ -14,7 +14,7 @@ const router = Router();
 router.use(requireAuth, authorize("patient"));
 
 router.get("/dashboard", async (req, res) => {
-  const [appointments, records, invoices, notifications] = await Promise.all([
+  const [appointments, records, invoices, notifications, reviews] = await Promise.all([
     Appointment.find({ patient: req.user._id })
       .populate([
         { path: "createdBy", select: "fullName role" },
@@ -45,10 +45,19 @@ router.get("/dashboard", async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(80)
       .lean(),
-    buildPatientNotifications(req.user._id)
+    buildPatientNotifications(req.user._id),
+    Review.find({ patient: req.user._id })
+      .populate([
+        { path: "appointment", select: "startAt status" },
+        { path: "dentist", select: "fullName specialty" },
+        { path: "service", select: "name" }
+      ])
+      .sort({ updatedAt: -1, createdAt: -1 })
+      .limit(5)
+      .lean()
   ]);
 
-  res.json({ appointments, records, invoices, notifications });
+  res.json({ appointments, records, invoices, notifications, reviews });
 });
 
 router.get("/invoices", async (req, res) => {

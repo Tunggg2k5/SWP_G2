@@ -1,7 +1,7 @@
 const labels = {
   pending: "Chờ tiếp nhận",
-  scheduled: "Đã đặt",
-  confirmed: "Đã xác nhận",
+  scheduled: "Đang chờ",
+  confirmed: "Đang chờ",
   waitlisted: "Hàng đợi",
   rejected: "Từ chối",
   called: "Đã gọi",

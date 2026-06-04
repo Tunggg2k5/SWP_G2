@@ -7,7 +7,7 @@ import Invoice from "../models/Invoice.js";
 import Notification from "../models/Notification.js";
 import Payment from "../models/Payment.js";
 import { authorize, requireAuth } from "../middlewares/auth.js";
-import { assertTwentyFourHourRule, endOfLocalDay, startOfLocalDay } from "../utils/time.js";
+import { combineDateAndTime, endOfLocalDay, startOfLocalDay, toDateInputValue } from "../utils/time.js";
 import {
   futureDateInputSchema,
   noteSchema,
@@ -22,7 +22,7 @@ import {
 
 const router = Router();
 const STAFF_ROLES = new Set(["receptionist", "admin", "nurse"]);
-const LOCKED_APPOINTMENT_STATUSES = new Set();
+const LOCKED_APPOINTMENT_STATUSES = new Set(["cancelled", "rejected"]);
 
 const populateAppointment = [
   { path: "patient", select: "fullName email phone" },
@@ -69,7 +69,7 @@ function assertAppointmentCanChange(appointment, user) {
   }
 
   if (LOCKED_APPOINTMENT_STATUSES.has(appointment.status)) {
-    const err = new Error("Lịch hẹn đã bị từ chối nên không thể cập nhật thêm.");
+    const err = new Error("Lịch hẹn đã hủy hoặc bị từ chối nên không thể cập nhật thêm.");
     err.statusCode = 409;
     throw err;
   }
@@ -102,16 +102,18 @@ async function notifyPatientOfReceptionDecision(appointment, status) {
 }
 
 async function assertNotPastCheckIn(appointment) {
+  const clinicCloseAt = combineDateAndTime(toDateInputValue(appointment.startAt), "17:30");
   if (
-    ["scheduled", "confirmed"].includes(appointment.status) &&
+    ["pending", "scheduled", "confirmed", "waitlisted"].includes(appointment.status) &&
     !appointment.checkedInAt &&
-    appointment.arrivalAt &&
-    appointment.arrivalAt < new Date()
+    clinicCloseAt < new Date()
   ) {
-    appointment.status = "no_show";
-    appointment.receptionistNote = "Hệ thống tự chuyển vắng mặt vì đã quá thời gian check-in.";
+    appointment.status = "cancelled";
+    appointment.cancelledAt = new Date();
+    appointment.cancellationReason = "Hệ thống tự hủy vì bệnh nhân chưa check-in trước 17:30.";
+    appointment.receptionistNote = "Hệ thống tự hủy vì bệnh nhân chưa có trạng thái Có mặt trước 17:30.";
     await appointment.save();
-    const err = new Error("Lịch hẹn đã quá thời gian check-in và được chuyển sang Vắng mặt.");
+    const err = new Error("Lịch hẹn đã quá 17:30 và được hệ thống tự hủy vì bệnh nhân chưa check-in.");
     err.statusCode = 409;
     throw err;
   }
@@ -256,7 +258,6 @@ router.patch("/:id/cancel", async (req, res, next) => {
     assertAppointmentCanChange(appointment, req.user);
     await assertNotPastCheckIn(appointment);
 
-    assertTwentyFourHourRule(appointment.startAt);
     appointment.status = "cancelled";
     appointment.cancelledAt = new Date();
     appointment.cancelledBy = req.user._id;
@@ -309,7 +310,7 @@ router.patch("/:id/status", authorize("receptionist", "admin", "nurse"), async (
     if (["confirmed", "waitlisted", "rejected", "scheduled", "checked_in", "in_treatment", "completed", "cancelled", "no_show"].includes(data.status) && ["receptionist", "admin"].includes(req.user.role)) {
       appointment.receptionist = req.user._id;
     }
-    if (data.status === "checked_in") {
+    if (data.status === "checked_in" && !appointment.checkedInAt) {
       appointment.checkedInAt = new Date();
       appointment.checkInTime = appointment.checkedInAt;
     }

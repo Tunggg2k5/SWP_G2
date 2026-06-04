@@ -35,8 +35,8 @@ const router = Router();
 const STAFF_SCHEDULE_ROLES = ["dentist", "nurse", "receptionist"];
 const BLOCKING_SCHEDULE_STATUSES = ["scheduled", "completed"];
 const CLINIC_WORKING_SESSIONS = [
-  { start: "07:00", end: "11:30" },
-  { start: "13:30", end: "17:30" }
+  { start: "08:00", end: "11:30" },
+  { start: "14:00", end: "17:30" }
 ];
 
 router.use(requireAuth, authorize("admin"));
@@ -481,7 +481,7 @@ function validateTimeWindow(startTime, endTime) {
 function validateClinicSessionWindow(startTime, endTime) {
   const isValidSession = CLINIC_WORKING_SESSIONS.some((session) => startTime >= session.start && endTime <= session.end);
   if (!isValidSession) {
-    throwHttpError("Thời gian phải nằm trong ca sáng 07:00 - 11:30 hoặc ca chiều 13:30 - 17:30.", 400);
+    throwHttpError("Thời gian phải nằm trong ca sáng 08:00 - 11:30 hoặc ca chiều 14:00 - 17:30.", 400);
   }
 }
 

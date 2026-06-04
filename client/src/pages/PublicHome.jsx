@@ -316,7 +316,7 @@ export default function PublicHome() {
             <div className="smile-feature-list">
               <span>
                 <Clock size={18} />
-                Thứ 2 - Thứ 7, 07:00-11:30 và 13:30-17:30
+                Thứ 2 - Thứ 7, 8h-11h30 và 14h-17h30
               </span>
               <span>
                 <UsersRound size={18} />

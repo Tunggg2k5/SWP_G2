@@ -30,8 +30,8 @@ const dayNames = {
 };
 const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
 const clinicSessions = [
-  { start: "07:00", end: "11:30" },
-  { start: "13:30", end: "17:30" }
+  { start: "08:00", end: "11:30" },
+  { start: "14:00", end: "17:30" }
 ];
 
 export default function AdminDashboard() {
@@ -65,7 +65,7 @@ export default function AdminDashboard() {
   const [workingHourForm, setWorkingHourForm] = useState({
     dayOfWeek: 1,
     shiftName: "Ca sáng",
-    startTime: "07:00",
+    startTime: "08:00",
     endTime: "11:30"
   });
   const [scheduleForm, setScheduleForm] = useState({
@@ -73,7 +73,7 @@ export default function AdminDashboard() {
     timeSlotId: "",
     roomId: "",
     workDate: todayInput(),
-    startTime: "07:00",
+    startTime: "08:00",
     endTime: "11:30"
   });
   const [message, setMessage] = useState("");
@@ -844,7 +844,7 @@ function validateTimeRange(startTime, endTime) {
   if (!timePattern.test(startTime) || !timePattern.test(endTime)) return "Giờ phải theo định dạng HH:mm.";
   if (startTime >= endTime) return "Giờ bắt đầu phải trước giờ kết thúc.";
   if (!clinicSessions.some((session) => startTime >= session.start && endTime <= session.end)) {
-    return "Thời gian phải nằm trong ca sáng 07:00 - 11:30 hoặc ca chiều 13:30 - 17:30.";
+    return "Thời gian phải nằm trong ca sáng 08:00 - 11:30 hoặc ca chiều 14:00 - 17:30.";
   }
   return "";
 }

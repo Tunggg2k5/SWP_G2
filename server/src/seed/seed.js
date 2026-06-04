@@ -108,14 +108,14 @@ async function createWorkingCalendar() {
       {
         dayOfWeek,
         shiftName: "Ca sáng",
-        startTime: "07:00",
+        startTime: "08:00",
         endTime: "11:30",
         status: "active"
       },
       {
         dayOfWeek,
         shiftName: "Ca chiều",
-        startTime: "13:30",
+        startTime: "14:00",
         endTime: "17:30",
         status: "active"
       }
@@ -124,8 +124,8 @@ async function createWorkingCalendar() {
   await ClinicWorkingHour.create(workingHours);
 
   return TimeSlot.create([
-    { slotName: "Ca sáng", startTime: "07:00", endTime: "11:30" },
-    { slotName: "Ca chiều", startTime: "13:30", endTime: "17:30" }
+    { slotName: "Ca sáng", startTime: "08:00", endTime: "11:30" },
+    { slotName: "Ca chiều", startTime: "14:00", endTime: "17:30" }
   ]);
 }
 
@@ -411,7 +411,7 @@ async function run() {
     email: "guest@example.com",
     service: services[2]._id,
     preferredDate: new Date(`${date}T00:00:00`),
-    preferredTime: "13:30",
+    preferredTime: "14:00",
     message: "Muốn tư vấn đau răng trước khi đặt lịch."
   });
 

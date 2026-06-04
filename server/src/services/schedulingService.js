@@ -8,7 +8,6 @@ import {
   WORKING_SESSIONS,
   APPOINTMENT_SLOT_MINUTES,
   addMinutes,
-  assertTwentyFourHourRule,
   calculateArrivalAt,
   combineDateAndTime,
   endOfLocalDay,
@@ -303,15 +302,14 @@ export async function createAppointmentFromSlot({ requester, patientId, serviceI
 }
 
 export async function rescheduleAppointmentFromSlot({ appointment, serviceId, date, startAt, roomId }) {
-  assertTwentyFourHourRule(appointment.startAt);
-
   const requestedStart = startAt ? new Date(startAt) : null;
   const targetServiceId = serviceId || appointment.service.toString();
   const [slots, patientAppointments] = await Promise.all([
     findAvailableSlots({
       date,
       serviceId: targetServiceId,
-      excludeAppointmentId: appointment._id
+      excludeAppointmentId: appointment._id,
+      includeBooked: true
     }),
     getPatientAppointmentsForDate(appointment.patient, date, appointment._id)
   ]);
@@ -330,15 +328,6 @@ export async function rescheduleAppointmentFromSlot({ appointment, serviceId, da
 
   await assertPatientHasNoTimeConflict(appointment.patient, selected.startAt, selected.endAt, appointment._id, patientAppointments);
   const nurse = await selectAvailableNurse(selected.startAt, selected.endAt, date);
-  await assertAppointmentResourcesAvailable({
-    patientId: appointment.patient,
-    dentistId: selected.dentist._id,
-    nurseId: nurse?._id,
-    roomId: selected.room._id,
-    startAt: selected.startAt,
-    endAt: selected.endAt,
-    excludeAppointmentId: appointment._id
-  });
 
   if (appointment.appointmentSlot) {
     await AppointmentSlot.findByIdAndUpdate(appointment.appointmentSlot, { status: "cancelled" });

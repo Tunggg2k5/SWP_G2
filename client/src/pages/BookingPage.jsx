@@ -1,91 +1,73 @@
-import { CalendarSearch, Clock, DoorOpen, Filter } from "lucide-react";
+import { CalendarSearch, Clock, Stethoscope } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import EmptyState from "../components/EmptyState.jsx";
 import Feedback from "../components/Feedback.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { usePublicBootstrap } from "../hooks/usePublicBootstrap.js";
 import { api, getErrorMessage } from "../services/api.js";
-import { formatMoney, formatTime, todayInput } from "../utils/format.js";
+import { formatMoney, todayInput } from "../utils/format.js";
 import { canUsePatientBooking } from "../utils/roles.js";
 import { firstError, requireValue, validateDate, validateNote } from "../utils/validation.js";
 
-const shiftOptions = [
-  { value: "all", label: "Tất cả ca" },
-  { value: "Ca sáng", label: "Ca sáng" },
-  { value: "Ca chiều", label: "Ca chiều" }
+export const bookingSlotOptions = [
+  { value: "08:00", label: "8h-10h" },
+  { value: "10:00", label: "10h-11h30" },
+  { value: "14:00", label: "14h-16h" },
+  { value: "16:00", label: "16h-17h30" }
 ];
 
-export default function BookingPage() {
+export function toClinicIso(date, time) {
+  return new Date(`${date}T${time}:00+07:00`).toISOString();
+}
+
+export default function BookingPage({ embedded = false }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const minDate = useMemo(() => todayInput(), []);
-  const [services, setServices] = useState([]);
+  const { services, dentists, rooms, loading: bootstrapLoading } = usePublicBootstrap();
   const [serviceId, setServiceId] = useState("");
   const [date, setDate] = useState(minDate);
-  const [shift, setShift] = useState("all");
   const [dentistId, setDentistId] = useState("");
-  const [slots, setSlots] = useState([]);
+  const [time, setTime] = useState(bookingSlotOptions[0].value);
   const [note, setNote] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    api
-      .get("/services")
-      .then((res) => {
-        setServices(res.data.services);
-        setServiceId((current) => current || res.data.services[0]?._id || "");
-      })
-      .catch((err) => setError(getErrorMessage(err)));
-  }, []);
+  const dentistOptions = useMemo(() => {
+    const roomDentists = rooms.map((room) => room.assignedDentist).filter(Boolean);
+    const allDentists = [...roomDentists, ...dentists];
+    return Array.from(new Map(allDentists.map((dentist) => [dentist._id, dentist])).values());
+  }, [dentists, rooms]);
 
   useEffect(() => {
-    if (serviceId) {
-      searchSlots();
-    }
-  }, [serviceId, date]);
+    setServiceId((current) => current || services[0]?._id || "");
+  }, [services]);
+
+  useEffect(() => {
+    setDentistId((current) => current || dentistOptions[0]?._id || "");
+  }, [dentistOptions]);
 
   function validateBookingInputs() {
-    return firstError(requireValue(serviceId, "Dịch vụ"), validateDate(date), validateNote(note));
+    return firstError(
+      requireValue(serviceId, "Dịch vụ"),
+      requireValue(dentistId, "Bác sĩ"),
+      validateDate(date),
+      requireValue(time, "Giờ khám"),
+      validateNote(note)
+    );
   }
 
-  async function searchSlots({ preserveFeedback = false } = {}) {
-    const validationError = firstError(requireValue(serviceId, "Dịch vụ"), validateDate(date));
-    if (validationError) {
-      setSlots([]);
-      setError(validationError);
-      return;
-    }
+  async function book(event) {
+    event.preventDefault();
 
-    if (!preserveFeedback) {
-      setError("");
-      setMessage("");
-    }
-    setLoading(true);
-
-    try {
-      const res = await api.get("/availability", { params: { serviceId, date, includeBooked: true } });
-      const nextSlots = res.data.slots || [];
-      setSlots(nextSlots);
-      setDentistId((current) => (
-        nextSlots.some((slot) => slot.dentist?._id === current) ? current : ""
-      ));
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function book(slot) {
     if (!user) {
       navigate("/login");
       return;
     }
 
     if (!canUsePatientBooking(user.role)) {
-      setError("Chỉ tài khoản bệnh nhân được đặt lịch tại màn này.");
+      setError("Chỉ tài khoản bệnh nhân được đặt lịch tại màn hình này.");
       return;
     }
 
@@ -95,55 +77,79 @@ export default function BookingPage() {
       return;
     }
 
-    if (!window.confirm(`Xác nhận đặt lịch lúc ${formatTime(slot.startAt)}?`)) {
+    const room = rooms.find((item) => item.assignedDentist?._id === dentistId) || rooms.find((item) => item.assignedDentist);
+    if (!room) {
+      setError("Chưa có phòng khám được gán bác sĩ. Vui lòng liên hệ lễ tân.");
       return;
     }
 
+    const selectedSlot = bookingSlotOptions.find((option) => option.value === time);
+    if (!window.confirm(`Xác nhận đặt lịch ca ${selectedSlot?.label || time}?`)) return;
+
     setError("");
     setMessage("");
+    setSubmitting(true);
 
     try {
       await api.post("/appointments", {
         serviceId,
         date,
-        startAt: slot.startAt,
-        roomId: slot.room._id,
+        startAt: toClinicIso(date, time),
+        roomId: room._id,
         note
       });
-      setMessage("Đã gửi yêu cầu đặt lịch. Nếu giờ này đã có người chọn, lễ tân sẽ liên hệ để xác nhận lại.");
-      await searchSlots({ preserveFeedback: true });
+      setMessage("Đã gửi yêu cầu đặt lịch. Lễ tân sẽ tiếp nhận và cập nhật trạng thái cho bạn.");
+      setNote("");
     } catch (err) {
       setError(getErrorMessage(err));
+    } finally {
+      setSubmitting(false);
     }
   }
 
   const selectedService = services.find((service) => service._id === serviceId);
-  const dentists = Array.from(
-    new Map(slots.map((slot) => [slot.dentist?._id, slot.dentist]).filter(([id]) => id)).values()
-  );
-  const filteredSlots = slots.filter((slot) => {
-    if (!dentistId) return false;
-    const matchesShift = shift === "all" || slot.session === shift;
-    const matchesDentist = slot.dentist?._id === dentistId;
-    return matchesShift && matchesDentist;
-  });
 
   return (
-    <div className="page-grid">
+    <div className={embedded ? "booking-page embedded-booking" : "page-grid booking-page"}>
       <Feedback error={error} message={message} onClear={() => { setError(""); setMessage(""); }} />
-      <section className="panel">
-        <div className="section-title">
-          <CalendarSearch size={20} />
-          <h2>Đặt lịch khám</h2>
+
+      <section className="panel patient-booking-panel">
+        <div className="booking-form-heading">
+          <CalendarSearch size={24} />
+          <div>
+            <h2>Đặt lịch khám</h2>
+            <p>Miễn phí chụp phim, tư vấn và thăm khám khi khách hàng đặt lịch hẹn trước.</p>
+          </div>
         </div>
 
-        <div className="form-grid booking-controls">
+        <form className="booking-form-modern" onSubmit={book}>
           <label className="field">
-            <span>Dịch vụ</span>
-            <select value={serviceId} onChange={(e) => setServiceId(e.target.value)} required>
+            <span>Họ và tên</span>
+            <input value={user?.fullName || ""} disabled />
+          </label>
+
+          <label className="field">
+            <span>Số điện thoại</span>
+            <input value={user?.phone || ""} disabled />
+          </label>
+
+          <label className="field">
+            <span>Dịch vụ quan tâm</span>
+            <select value={serviceId} onChange={(e) => setServiceId(e.target.value)} disabled={bootstrapLoading} required>
               {services.map((service) => (
                 <option value={service._id} key={service._id}>
                   {service.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="field">
+            <span>Bác sĩ</span>
+            <select value={dentistId} onChange={(e) => setDentistId(e.target.value)} disabled={bootstrapLoading} required>
+              {dentistOptions.map((dentist) => (
+                <option value={dentist._id} key={dentist._id}>
+                  {dentist.fullName}{dentist.specialty ? ` - ${dentist.specialty}` : ""}
                 </option>
               ))}
             </select>
@@ -154,28 +160,17 @@ export default function BookingPage() {
             <input type="date" value={date} min={minDate} onChange={(e) => setDate(e.target.value)} required />
           </label>
 
-          <label className="field">
-            <span>Ca</span>
-            <select value={shift} onChange={(e) => setShift(e.target.value)}>
-              {shiftOptions.map((option) => (
-                <option value={option.value} key={option.value}>
-                  {option.label}
-                </option>
+          <fieldset className="booking-time-field">
+            <legend>Giờ khám</legend>
+            <div className="booking-time-options">
+              {bookingSlotOptions.map((option) => (
+                <label key={option.value}>
+                  <input type="radio" name="booking-time" value={option.value} checked={time === option.value} onChange={(e) => setTime(e.target.value)} />
+                  <span>{option.label}</span>
+                </label>
               ))}
-            </select>
-          </label>
-
-          <label className="field">
-            <span>Bác sĩ</span>
-            <select value={dentistId} onChange={(e) => setDentistId(e.target.value)}>
-              <option value="">Chọn bác sĩ</option>
-              {dentists.map((dentist) => (
-                <option value={dentist._id} key={dentist._id}>
-                  {dentist.fullName}
-                </option>
-              ))}
-            </select>
-          </label>
+            </div>
+          </fieldset>
 
           <label className="field wide">
             <span>Ghi chú</span>
@@ -186,47 +181,24 @@ export default function BookingPage() {
               maxLength={1000}
             />
           </label>
-        </div>
 
-        {selectedService && (
-          <div className="rule-strip">
-            <span>
-              <Clock size={16} /> Mỗi lịch khám cố định 30 phút
-            </span>
-            <span>{selectedService.requiresPrepayment ? `Thanh toán khi đến khám: ${formatMoney(selectedService.price)}` : "Chi phí xác định sau khám"}</span>
-            <span>
-              <Filter size={16} /> Có thể lọc lịch trống theo ngày, ca và bác sĩ.
-            </span>
-          </div>
-        )}
-      </section>
+          {selectedService && (
+            <div className="booking-summary-strip">
+              <span>
+                <Stethoscope size={16} />
+                {selectedService.name}
+              </span>
+              <span>
+                <Clock size={16} />
+                {selectedService.requiresPrepayment ? `Thanh toán khi đến khám: ${formatMoney(selectedService.price)}` : "Chi phí xác định sau khám"}
+              </span>
+            </div>
+          )}
 
-      <section className="panel">
-        <div className="section-title">
-          <DoorOpen size={20} />
-          <h3>Lịch trống theo bác sĩ</h3>
-        </div>
-
-        {loading ? (
-          <div className="empty-state">Đang tải lịch trống...</div>
-        ) : !dentistId ? (
-          <EmptyState title="Chọn bác sĩ để xem slot" text="Sau khi chọn bác sĩ, hệ thống chỉ hiển thị các giờ trống của bác sĩ đó." />
-        ) : filteredSlots.length ? (
-          <div className="slot-grid">
-            {filteredSlots.map((slot) => (
-              <article className="slot-card simple-slot-card" key={`${slot.room._id}-${slot.startAt}`}>
-                <div className="slot-time simple-slot-time">
-                  <strong>{formatTime(slot.startAt)}</strong>
-                </div>
-                <button className="button primary" onClick={() => book(slot)}>
-                  Đặt lịch
-                </button>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <EmptyState title="Không còn lịch phù hợp" text="Thử đổi ca, ngày hoặc bác sĩ để xem lịch trống khác." />
-        )}
+          <button className="button primary booking-submit-final" disabled={submitting || bootstrapLoading}>
+            {submitting ? "Đang gửi..." : "Đặt lịch"}
+          </button>
+        </form>
       </section>
     </div>
   );

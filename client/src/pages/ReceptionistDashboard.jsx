@@ -1,6 +1,6 @@
-import { CalendarDays, CalendarPlus, CheckCheck, ClipboardList, PhoneCall, Search } from "lucide-react";
+import { CalendarDays, CalendarPlus, CheckCheck, ClipboardList, KeyRound, PhoneCall, Search } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import EmptyState from "../components/EmptyState.jsx";
 import Feedback from "../components/Feedback.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
@@ -9,11 +9,11 @@ import { formatDateTime, formatTime, todayInput } from "../utils/format.js";
 import { firstError, requireValue, validateDate, validateName, validateNote, validatePhone } from "../utils/validation.js";
 
 const receptionStatusActionOptions = [
+  { value: "confirmed", label: "Đang chờ" },
   { value: "checked_in", label: "Có mặt" },
   { value: "no_show", label: "Vắng mặt" },
   { value: "in_treatment", label: "Đang khám" },
-  { value: "completed", label: "Hoàn tất" },
-  { value: "cancelled", label: "Đã hủy" }
+  { value: "completed", label: "Hoàn tất" }
 ];
 
 const scheduleStatuses = new Set(["scheduled", "confirmed", "checked_in", "in_treatment", "completed", "cancelled", "no_show"]);
@@ -30,6 +30,7 @@ const genderOptions = [
 
 export default function ReceptionistDashboard() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [activeFeature, setActiveFeature] = useState("appointments");
   const [currentTime, setCurrentTime] = useState(new Date());
   const [date, setDate] = useState(todayInput());
@@ -42,8 +43,9 @@ export default function ReceptionistDashboard() {
   const [roomFilter, setRoomFilter] = useState("all");
   const [patientSearch, setPatientSearch] = useState("");
   const [accountMode, setAccountMode] = useState("existing");
-  const [newPatient, setNewPatient] = useState({ fullName: "", phone: "", gender: "unknown", address: "", createAccount: false });
+  const [newPatient, setNewPatient] = useState({ fullName: "", phone: "", gender: "unknown", createAccount: false });
   const [booking, setBooking] = useState({ patientId: "", serviceId: "", note: "" });
+  const [resetPasswords, setResetPasswords] = useState({});
   const [rescheduleDates, setRescheduleDates] = useState({});
   const [rescheduleSlots, setRescheduleSlots] = useState({});
   const [rescheduleSlotKeys, setRescheduleSlotKeys] = useState({});
@@ -80,7 +82,7 @@ export default function ReceptionistDashboard() {
 
   useEffect(() => {
     const tab = new URLSearchParams(location.search).get("tab");
-    if (["appointments", "schedule", "booking", "consultations"].includes(tab)) {
+    if (["appointments", "schedule", "booking", "accounts", "consultations"].includes(tab)) {
       setActiveFeature(tab);
     }
   }, [location.search]);
@@ -119,7 +121,7 @@ export default function ReceptionistDashboard() {
       if (accountMode === "new") {
         const res = await api.post("/reception/patients", newPatient);
         patientId = res.data.patient._id;
-        setNewPatient({ fullName: "", phone: "", gender: "unknown", address: "", createAccount: false });
+        setNewPatient({ fullName: "", phone: "", gender: "unknown", createAccount: false });
       }
 
       await api.post("/appointments", {
@@ -129,7 +131,9 @@ export default function ReceptionistDashboard() {
         channel: "offline",
         note: booking.note
       });
-      setMessage("Đã đặt lịch hộ bệnh nhân theo lịch trống đầu tiên.");
+      setMessage("Đã đặt lịch hộ bệnh nhân. Chuyển sang màn cập nhật trạng thái.");
+      setActiveFeature("schedule");
+      navigate("/dashboard?tab=schedule", { replace: true });
       load();
     } catch (err) {
       setError(getErrorMessage(err));
@@ -161,7 +165,11 @@ export default function ReceptionistDashboard() {
         status,
         note: `Lễ tân ${labels[status]}.`
       });
-      setMessage(status === "confirmed" ? "Đã chấp nhận lịch hẹn." : "Đã từ chối lịch hẹn.");
+      setMessage(status === "confirmed" ? "Đã chấp nhận lịch hẹn. Chuyển sang màn cập nhật trạng thái." : "Đã từ chối lịch hẹn.");
+      if (status === "confirmed") {
+        setActiveFeature("schedule");
+        navigate("/dashboard?tab=schedule", { replace: true });
+      }
       load();
     } catch (err) {
       setError(getErrorMessage(err));
@@ -169,8 +177,8 @@ export default function ReceptionistDashboard() {
   }
 
   async function applyScheduleStatus(appointment) {
-    if (isPatientCancelled(appointment)) {
-      setError("Lịch này do bệnh nhân hủy nên lễ tân không thể thay đổi trạng thái.");
+    if (isLockedScheduleAppointment(appointment)) {
+      setError("Lịch này đã hủy hoặc bị từ chối nên không thể thay đổi trạng thái.");
       return;
     }
 
@@ -195,10 +203,12 @@ export default function ReceptionistDashboard() {
 
     try {
       await api.patch(`/appointments/${appointment._id}/reschedule`, { date: nextDate, startAt: slot.startAt, roomId: slot.room._id });
-      setMessage("Đã đổi lịch bệnh nhân sang slot trống đã chọn.");
+      setMessage("Đã đổi lịch bệnh nhân. Chuyển sang màn cập nhật trạng thái.");
       setRescheduleDates((current) => ({ ...current, [appointment._id]: "" }));
       setRescheduleSlots((current) => ({ ...current, [appointment._id]: [] }));
       setRescheduleSlotKeys((current) => ({ ...current, [appointment._id]: "" }));
+      setActiveFeature("schedule");
+      navigate("/dashboard?tab=schedule", { replace: true });
       load();
     } catch (err) {
       setError(getErrorMessage(err));
@@ -235,6 +245,19 @@ export default function ReceptionistDashboard() {
     }
   }
 
+  async function resetPatientPassword(patient) {
+    const password = resetPasswords[patient._id] || "Password123!";
+    if (!window.confirm(`Xác nhận reset mật khẩu cho ${patient.fullName}?`)) return;
+
+    try {
+      const res = await api.patch(`/reception/patients/${patient._id}/reset-password`, { password });
+      setMessage(`Đã reset mật khẩu cho ${res.data.patient.fullName}. Mật khẩu tạm: ${res.data.temporaryPassword}`);
+      setResetPasswords((current) => ({ ...current, [patient._id]: "" }));
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  }
+
   const filteredBaseAppointments = appointments.filter((appointment) => matchesAppointmentFilters(appointment, appointmentSearch, roomFilter));
   const pendingAppointments = filteredBaseAppointments.filter((appointment) => intakeStatuses.has(appointment.status));
   const scheduleAppointments = filteredBaseAppointments.filter((appointment) => scheduleStatuses.has(appointment.status));
@@ -251,21 +274,33 @@ export default function ReceptionistDashboard() {
   });
 
   const dentistColumns = useMemo(() => {
-    return Array.from(
-      new Map(scheduleAppointments.map((appointment) => [appointment.dentist?._id, appointment.dentist]).filter(([id]) => id)).values()
-    );
-  }, [scheduleAppointments]);
+    const roomDentists = rooms.map((room) => room.assignedDentist).filter(Boolean);
+    const appointmentDentists = scheduleAppointments.map((appointment) => appointment.dentist).filter(Boolean);
+    const merged = Array.from(new Map([...roomDentists, ...appointmentDentists].map((dentist) => [dentist._id, dentist])).values()).slice(0, 3);
 
-  const slotRows = useMemo(() => {
-    return Array.from(
-      new Map(
-        scheduleAppointments.map((appointment) => [
-          new Date(appointment.startAt).getTime(),
-          { key: new Date(appointment.startAt).getTime(), label: formatTime(appointment.startAt) }
-        ])
-      ).values()
-    ).sort((a, b) => a.key - b.key);
-  }, [scheduleAppointments]);
+    while (merged.length < 3) {
+      merged.push({
+        _id: `fixed-dentist-${merged.length + 1}`,
+        fullName: `Bác sĩ ${merged.length + 1}`,
+        specialty: "Bác sĩ nha khoa"
+      });
+    }
+
+    return merged;
+  }, [rooms, scheduleAppointments]);
+
+  const appointmentsByDentist = useMemo(() => {
+    const map = new Map(dentistColumns.map((dentist) => [dentist._id, []]));
+    scheduleAppointments
+      .filter((appointment) => appointment.dentist?._id && map.has(appointment.dentist._id))
+      .sort(compareQueueOrder)
+      .forEach((appointment) => {
+        map.get(appointment.dentist._id).push(appointment);
+      });
+    return map;
+  }, [dentistColumns, scheduleAppointments]);
+
+  const queueRowCount = Math.max(1, ...Array.from(appointmentsByDentist.values()).map((items) => items.length));
 
   return (
     <div className="page-grid">
@@ -382,7 +417,7 @@ export default function ReceptionistDashboard() {
         <section className="panel reception-schedule-panel">
           <div className="section-title">
             <CalendarDays size={20} />
-            <h2>Lịch khám theo bác sĩ và slot</h2>
+            <h2>Lịch khám theo thứ tự check-in</h2>
           </div>
 
           <div className="metrics-grid compact-grid">
@@ -403,13 +438,13 @@ export default function ReceptionistDashboard() {
 
           {loading ? (
             <EmptyState title="Đang tải lịch khám" text="Hệ thống đang lấy dữ liệu mới nhất." />
-          ) : scheduleAppointments.length && dentistColumns.length ? (
+          ) : (
             <div className="reception-schedule-table-wrapper">
               <div
                 className="reception-schedule-grid"
-                style={{ gridTemplateColumns: `92px repeat(${dentistColumns.length}, minmax(220px, 1fr))` }}
+                style={{ gridTemplateColumns: "74px repeat(3, minmax(220px, 1fr))" }}
               >
-                <div className="schedule-head schedule-time-head">Giờ</div>
+                <div className="schedule-head schedule-time-head">STT</div>
                 {dentistColumns.map((dentist) => (
                   <div className="schedule-head dentist-head" key={dentist._id}>
                     <strong>{dentist.fullName}</strong>
@@ -417,46 +452,44 @@ export default function ReceptionistDashboard() {
                   </div>
                 ))}
 
-                {slotRows.map((row) => (
-                  <Fragment key={row.key}>
-                    <div className="schedule-time-cell">{row.label}</div>
+                {Array.from({ length: queueRowCount }, (_, rowIndex) => (
+                  <Fragment key={`queue-row-${rowIndex}`}>
+                    <div className="schedule-time-cell">#{rowIndex + 1}</div>
                     {dentistColumns.map((dentist) => {
-                      const cellAppointments = scheduleAppointments.filter(
-                        (appointment) =>
-                          appointment.dentist?._id === dentist._id &&
-                          new Date(appointment.startAt).getTime() === row.key
-                      );
+                      const appointment = appointmentsByDentist.get(dentist._id)?.[rowIndex];
+                      const locked = appointment ? isLockedScheduleAppointment(appointment) : false;
                       return (
-                        <div className="schedule-cell" key={`${row.key}-${dentist._id}`}>
-                          {cellAppointments.map((appointment) => {
-                            const locked = isPatientCancelled(appointment);
-                            return (
-                              <article className={`schedule-cell-card ${locked ? "locked" : ""}`} key={appointment._id}>
-                                <div>
-                                  <strong>{appointment.patient?.fullName || "Bệnh nhân"}</strong>
-                                  <span>{appointment.service?.name || "Dịch vụ"} / {appointment.room?.name || "Phòng"}</span>
-                                  <StatusBadge value={appointment.status} />
-                                  {locked && <small>Bệnh nhân đã hủy, không thể đổi trạng thái.</small>}
-                                </div>
-                                <div className="row-actions schedule-status-actions">
-                                  <select
-                                    value={statusActions[appointment._id] || defaultStatusAction(appointment)}
-                                    disabled={locked}
-                                    onChange={(e) => setStatusActions((current) => ({ ...current, [appointment._id]: e.target.value }))}
-                                  >
-                                    {receptionStatusActionOptions.map((option) => (
-                                      <option value={option.value} key={option.value}>
-                                        {option.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <button className="button small" disabled={locked} onClick={() => applyScheduleStatus(appointment)}>
-                                    Cập nhật
-                                  </button>
-                                </div>
-                              </article>
-                            );
-                          })}
+                        <div className="schedule-cell" key={`${rowIndex}-${dentist._id}`}>
+                          {appointment ? (
+                            <article className={`schedule-cell-card ${locked ? "locked" : ""}`} key={appointment._id}>
+                              <div>
+                                <strong>{appointment.patient?.fullName || "Bệnh nhân"}</strong>
+                                <span>{appointment.service?.name || "Dịch vụ"} / {appointment.room?.name || "Phòng"}</span>
+                                <span>Giờ hẹn: {formatTime(appointment.startAt)}</span>
+                                {appointment.checkedInAt && <span>Check-in: {formatTime(appointment.checkedInAt)}</span>}
+                                <StatusBadge value={appointment.status} />
+                                {locked && <small>Lịch đã hủy hoặc bị từ chối, không thể đổi trạng thái.</small>}
+                              </div>
+                              <div className="row-actions schedule-status-actions">
+                                <select
+                                  value={statusActions[appointment._id] || defaultStatusAction(appointment)}
+                                  disabled={locked}
+                                  onChange={(e) => setStatusActions((current) => ({ ...current, [appointment._id]: e.target.value }))}
+                                >
+                                  {receptionStatusActionOptions.map((option) => (
+                                    <option value={option.value} key={option.value}>
+                                      {option.label}
+                                    </option>
+                                  ))}
+                                </select>
+                                <button className="button small" disabled={locked} onClick={() => applyScheduleStatus(appointment)}>
+                                  Cập nhật
+                                </button>
+                              </div>
+                            </article>
+                          ) : (
+                            <span className="schedule-empty-cell">Chưa có bệnh nhân</span>
+                          )}
                         </div>
                       );
                     })}
@@ -464,8 +497,6 @@ export default function ReceptionistDashboard() {
                 ))}
               </div>
             </div>
-          ) : (
-            <EmptyState title="Chưa có lịch khám trong bảng" text="Khi lễ tân chấp nhận lịch hẹn, lịch sẽ hiển thị tại đây." />
           )}
         </section>
       )}
@@ -516,7 +547,7 @@ export default function ReceptionistDashboard() {
                   <input type="tel" value={newPatient.phone} onChange={(e) => setNewPatient({ ...newPatient, phone: e.target.value })} required />
                 </label>
                 <label className="field">
-                  <span>Gender</span>
+                  <span>Giới tính</span>
                   <select value={newPatient.gender} onChange={(e) => setNewPatient({ ...newPatient, gender: e.target.value })}>
                     {genderOptions.map((option) => (
                       <option value={option.value} key={option.value}>
@@ -524,10 +555,6 @@ export default function ReceptionistDashboard() {
                       </option>
                     ))}
                   </select>
-                </label>
-                <label className="field">
-                  <span>Address</span>
-                  <input value={newPatient.address} onChange={(e) => setNewPatient({ ...newPatient, address: e.target.value })} />
                 </label>
                 <label className="checkbox-field account-create-checkbox">
                   <input
@@ -560,6 +587,52 @@ export default function ReceptionistDashboard() {
             </label>
             <button className="button primary booking-submit-final">Đặt lịch hộ</button>
           </form>
+        </section>
+      )}
+
+      {activeFeature === "accounts" && (
+        <section className="panel">
+          <div className="section-title">
+            <KeyRound size={20} />
+            <h2>Tài khoản bệnh nhân</h2>
+          </div>
+          <p className="muted">Tìm bệnh nhân và reset mật khẩu khi bệnh nhân cần hỗ trợ đăng nhập.</p>
+
+          <label className="field">
+            <span>Tìm tài khoản bệnh nhân</span>
+            <div className="input-with-icon">
+              <Search size={17} />
+              <input value={patientSearch} onChange={(e) => setPatientSearch(e.target.value)} placeholder="Tên hoặc số điện thoại" />
+            </div>
+          </label>
+
+          {loading ? (
+            <EmptyState title="Đang tải tài khoản" text="Hệ thống đang lấy dữ liệu bệnh nhân." />
+          ) : selectablePatients.length ? (
+            <div className="reset-account-grid">
+              {selectablePatients.map((patient) => (
+                <article className="reset-account-card" key={patient._id}>
+                  <div>
+                    <strong>{patient.fullName}</strong>
+                    <span>{patient.phone || "Chưa có SĐT"}</span>
+                  </div>
+                  <input
+                    type="password"
+                    value={resetPasswords[patient._id] || ""}
+                    onChange={(e) => setResetPasswords((current) => ({ ...current, [patient._id]: e.target.value }))}
+                    placeholder="Mặc định: Password123!"
+                    minLength={8}
+                    maxLength={72}
+                  />
+                  <button className="button small primary" onClick={() => resetPatientPassword(patient)}>
+                    Reset mật khẩu
+                  </button>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <EmptyState title="Không tìm thấy bệnh nhân" text="Thử tìm bằng số điện thoại hoặc họ tên khác." />
+          )}
         </section>
       )}
 
@@ -658,6 +731,20 @@ function isPatientCancelled(appointment) {
   return appointment.status === "cancelled" && appointment.cancelledByRole === "patient";
 }
 
+function isLockedScheduleAppointment(appointment) {
+  return ["cancelled", "rejected"].includes(appointment.status);
+}
+
+function compareQueueOrder(a, b) {
+  const aCheckedIn = Boolean(a.checkedInAt || a.checkInTime);
+  const bCheckedIn = Boolean(b.checkedInAt || b.checkInTime);
+  if (aCheckedIn !== bCheckedIn) return aCheckedIn ? -1 : 1;
+
+  const aTime = new Date(a.checkInTime || a.checkedInAt || a.startAt || a.createdAt).getTime();
+  const bTime = new Date(b.checkInTime || b.checkedInAt || b.startAt || b.createdAt).getTime();
+  return aTime - bTime;
+}
+
 function duplicateBookingInfo(appointment, appointments) {
   const dentistId = appointment.dentist?._id;
   const startTime = new Date(appointment.startAt).getTime();
@@ -680,7 +767,7 @@ function duplicateBookingInfo(appointment, appointments) {
 }
 
 function defaultStatusAction(appointment) {
-  return statusActionValues.has(appointment.status) ? appointment.status : "checked_in";
+  return statusActionValues.has(appointment.status) ? appointment.status : "confirmed";
 }
 
 function buildSlotKey(slot) {

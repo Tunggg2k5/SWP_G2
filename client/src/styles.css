@@ -1,16 +1,16 @@
 :root {
   color-scheme: light;
-  --bg: #f6fbff;
+  --bg: #f4fbf7;
   --surface: #ffffff;
-  --surface-2: #f4f9fc;
-  --surface-3: #eaf4f8;
+  --surface-2: #f2f8f5;
+  --surface-3: #e5f1ec;
   --text: #17212b;
   --muted: #617182;
-  --line: #dbe8ef;
-  --line-strong: #bdd2dd;
-  --primary: #087f8c;
-  --primary-dark: #075d68;
-  --primary-soft: #e7f7f8;
+  --line: #d8e7df;
+  --line-strong: #b8d3c6;
+  --primary: #0b5d46;
+  --primary-dark: #073f32;
+  --primary-soft: #e5f4ee;
   --secondary: #d98324;
   --secondary-soft: #fff4e6;
   --info: #2d6cdf;
@@ -21,8 +21,8 @@
   --success-soft: #e8f8ef;
   --warning: #a76605;
   --warning-soft: #fff6de;
-  --shadow: 0 18px 45px rgba(33, 76, 102, 0.12);
-  --shadow-soft: 0 10px 28px rgba(33, 76, 102, 0.08);
+  --shadow: 0 18px 45px rgba(8, 65, 50, 0.12);
+  --shadow-soft: 0 10px 28px rgba(8, 65, 50, 0.08);
   --radius: 8px;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 15px;
@@ -43,7 +43,7 @@ body {
   overflow-x: hidden;
   color: var(--text);
   background:
-    linear-gradient(180deg, #ffffff 0, #f6fbff 340px, #eef7fb 100%);
+    linear-gradient(180deg, #ffffff 0, #f4fbf7 340px, #eaf5ef 100%);
   letter-spacing: 0;
 }
 
@@ -374,7 +374,7 @@ textarea:focus-visible {
 .button.primary {
   background: var(--primary);
   color: white;
-  box-shadow: 0 10px 22px rgba(8, 127, 140, 0.18);
+  box-shadow: 0 10px 22px rgba(11, 93, 70, 0.18);
 }
 
 .button.primary:hover {
@@ -885,7 +885,7 @@ textarea:focus-visible {
 }
 
 .guest-branch-section .guest-kicker {
-  color: #087f8c;
+  color: var(--primary);
 }
 
 .guest-branch-grid {
@@ -1514,6 +1514,13 @@ textarea {
   border-left: 4px solid var(--info);
   border-radius: var(--radius);
   background: #f9fdff;
+  transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+}
+
+.schedule-cell-card:hover {
+  border-color: #a7cdbc;
+  box-shadow: 0 12px 24px rgba(8, 65, 50, 0.09);
+  transform: translateY(-1px);
 }
 
 .schedule-cell-card.locked {
@@ -1540,6 +1547,18 @@ textarea {
   width: min(100%, 150px);
 }
 
+.schedule-empty-cell {
+  display: grid;
+  place-items: center;
+  min-height: 80px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  color: var(--muted);
+  background: #f8fcfa;
+  font-size: 0.86rem;
+  font-weight: 760;
+}
+
 .clinical-treatment-actions {
   justify-content: flex-start;
 }
@@ -1553,6 +1572,36 @@ textarea {
   background: #fff4d8;
   color: #91610c;
   font-weight: 850;
+}
+
+.reset-account-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.reset-account-card {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(220px, 0.8fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fbfffd;
+}
+
+.reset-account-card > div {
+  display: grid;
+  gap: 4px;
+}
+
+.reset-account-card strong {
+  color: var(--text);
+}
+
+.reset-account-card span {
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .appointment-meta-stack {
@@ -2305,7 +2354,7 @@ th {
 }
 
 .role-patient .top-nav-list {
-  display: none;
+  display: flex;
 }
 
 .top-notification-button,
@@ -3129,33 +3178,36 @@ th {
 
 .patient-dashboard-shell {
   display: grid;
-  grid-template-columns: 292px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 260px;
   gap: 20px;
+  align-items: start;
   min-height: calc(100vh - 120px);
 }
 
 .patient-dashboard-shell.collapsed {
-  grid-template-columns: 64px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 64px;
 }
 
 .patient-sidebar-fab {
   position: sticky;
   top: 96px;
+  grid-column: 2;
   align-self: start;
+  justify-self: stretch;
   display: inline-grid;
   place-items: center;
   width: 56px;
   height: 56px;
   border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: var(--radius);
-  background: #111719;
-  color: #9ff3ff;
+  background: var(--primary-dark);
+  color: #d8f8ed;
   box-shadow: 0 16px 38px rgba(4, 28, 34, 0.2);
   transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .patient-sidebar-fab:hover {
-  border-color: #79ddeb;
+  border-color: #9bd7c2;
   transform: translateY(-2px);
   box-shadow: 0 20px 46px rgba(4, 28, 34, 0.28);
 }
@@ -3163,13 +3215,14 @@ th {
 .patient-sidebar {
   position: sticky;
   top: 96px;
+  grid-column: 2;
   align-self: start;
   display: grid;
   gap: 18px;
   min-height: calc(100vh - 126px);
   padding: 18px;
   border-radius: var(--radius);
-  background: linear-gradient(180deg, #0d8790, #0f6b73);
+  background: linear-gradient(180deg, #0b5d46, #073f32);
   color: white;
   box-shadow: var(--shadow);
   animation: patient-sidebar-in 0.18s ease-out;
@@ -3327,9 +3380,121 @@ th {
 }
 
 .patient-dashboard-content {
+  grid-column: 1;
+  grid-row: 1;
   display: grid;
   gap: 18px;
   min-width: 0;
+}
+
+.patient-public-home {
+  display: grid;
+  gap: 22px;
+}
+
+.patient-public-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
+  gap: 28px;
+  align-items: center;
+  min-height: min(620px, calc(100vh - 130px));
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 46px;
+  background:
+    linear-gradient(90deg, rgba(244, 251, 247, 0.98), rgba(244, 251, 247, 0.74), rgba(244, 251, 247, 0.3)),
+    url("/clinic-hero.png") center / cover no-repeat;
+  box-shadow: var(--shadow-soft);
+}
+
+.patient-public-copy {
+  display: grid;
+  gap: 22px;
+  max-width: 700px;
+}
+
+.patient-public-copy h1 {
+  margin: 0;
+  color: #14313a;
+  font-size: clamp(2.3rem, 4.6vw, 4.5rem);
+  line-height: 1.03;
+  overflow-wrap: anywhere;
+}
+
+.patient-public-copy p {
+  max-width: 640px;
+  margin: 0;
+  color: #4d6471;
+  font-size: 1.05rem;
+  line-height: 1.65;
+}
+
+.patient-public-section {
+  display: grid;
+  gap: 18px;
+  padding: 24px 0;
+}
+
+.patient-public-grid,
+.patient-review-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.patient-info-card {
+  display: grid;
+  gap: 9px;
+  min-height: 150px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  background: #ffffff;
+  box-shadow: var(--shadow-soft);
+}
+
+.patient-info-card strong {
+  color: var(--primary-dark);
+  font-size: 1rem;
+}
+
+.patient-info-card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.patient-info-card span {
+  color: var(--secondary);
+  font-weight: 900;
+}
+
+.patient-info-card small {
+  color: var(--muted);
+}
+
+.patient-about-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.patient-about-grid article {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  background: #f8fcfa;
+}
+
+.patient-about-grid strong {
+  color: var(--primary-dark);
+}
+
+.patient-about-grid p {
+  margin: 0;
+  color: var(--muted);
 }
 
 .patient-guest-hero {
@@ -3343,8 +3508,10 @@ th {
 }
 
 .patient-home-panel {
-  border-color: rgba(255, 255, 255, 0.14);
-  background: rgba(18, 22, 23, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius);
+  padding: 22px;
+  background: rgba(12, 45, 38, 0.94);
   color: #f4f7f7;
   box-shadow: 0 28px 70px rgba(0, 0, 0, 0.24);
 }
@@ -3435,8 +3602,141 @@ th {
   min-width: 180px;
 }
 
+.booking-page {
+  align-items: start;
+}
+
+.embedded-booking {
+  display: grid;
+  gap: 18px;
+}
+
+.patient-booking-panel {
+  max-width: 980px;
+  width: 100%;
+  margin-inline: auto;
+}
+
+.booking-form-heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  color: var(--primary-dark);
+  text-align: center;
+}
+
+.booking-form-heading h2 {
+  margin: 0;
+  color: var(--secondary);
+  font-size: 1.45rem;
+  text-transform: uppercase;
+}
+
+.booking-form-heading p {
+  margin: 4px 0 0;
+  color: #3f5360;
+}
+
+.booking-form-modern {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.booking-time-field {
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.booking-time-field legend {
+  margin-bottom: 8px;
+  color: #263f4c;
+  font-weight: 820;
+  font-size: 0.86rem;
+}
+
+.booking-time-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.booking-time-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  background: #ffffff;
+  color: var(--text);
+  font-weight: 820;
+}
+
+.booking-time-options input {
+  width: 16px;
+  min-height: 16px;
+  accent-color: var(--primary);
+}
+
+.booking-time-options label:has(input:checked) {
+  border-color: #99cbb8;
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+}
+
+.booking-summary-strip {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.booking-summary-strip span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  background: #f8fcfa;
+  color: var(--primary-dark);
+  font-weight: 820;
+}
+
 .patient-appointment-card {
   grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.patient-appointment-actions,
+.patient-reschedule-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.patient-appointment-actions {
+  margin-top: 12px;
+}
+
+.patient-reschedule-box {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px;
+  background: #f8fcfa;
+}
+
+.patient-reschedule-box input,
+.patient-reschedule-box select {
+  width: auto;
+  min-width: 140px;
 }
 
 .appointment-subpanel,
@@ -3543,6 +3843,13 @@ th {
   .clinic-feature-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .patient-public-hero,
+  .patient-public-grid,
+  .patient-review-grid,
+  .patient-about-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 760px) {
@@ -3635,16 +3942,48 @@ th {
 
   .patient-sidebar {
     position: static;
+    grid-column: auto;
     min-height: auto;
   }
 
   .patient-sidebar-fab {
     position: static;
+    grid-column: auto;
+    justify-self: start;
   }
 
   .patient-home-hero,
-  .patient-appointment-card {
+  .patient-appointment-card,
+  .booking-form-modern,
+  .reset-account-card {
     grid-template-columns: 1fr;
+  }
+
+  .patient-dashboard-content {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .patient-public-hero {
+    min-height: auto;
+    padding: 24px;
+  }
+
+  .patient-public-copy h1 {
+    font-size: 2.35rem;
+  }
+
+  .patient-home-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .booking-submit-final {
+    justify-self: stretch;
+  }
+
+  .patient-reschedule-box input,
+  .patient-reschedule-box select {
+    width: 100%;
   }
 }
 
@@ -3666,8 +4005,8 @@ th {
   --smile-line: rgba(21, 70, 76, 0.14);
   --smile-text: #17313c;
   --smile-muted: #5e7278;
-  --smile-teal: #03a994;
-  --smile-teal-dark: #017f72;
+  --smile-teal: #0b5d46;
+  --smile-teal-dark: #073f32;
   --smile-green: #e4f5ed;
   --smile-gold: #b88a00;
   min-height: 100vh;
@@ -3776,7 +4115,7 @@ th {
   border-radius: 999px;
   background: var(--smile-teal);
   color: white;
-  box-shadow: 0 14px 32px rgba(3, 169, 148, 0.22);
+  box-shadow: 0 14px 32px rgba(11, 93, 70, 0.22);
 }
 
 .smile-primary-link:hover,
@@ -3795,7 +4134,7 @@ th {
 }
 
 .smile-secondary-link:hover {
-  border-color: rgba(3, 169, 148, 0.42);
+  border-color: rgba(11, 93, 70, 0.42);
   color: var(--smile-text);
   transform: translateY(-1px);
 }
@@ -3826,16 +4165,16 @@ th {
   min-height: 42px;
   padding: 9px 18px;
   border-radius: 999px;
-  background: rgba(3, 169, 148, 0.1);
-  color: #087768;
+  background: rgba(11, 93, 70, 0.1);
+  color: #0b5d46;
   font-weight: 900;
 }
 
 .smile-pill.compact {
   min-height: 36px;
   padding: 7px 15px;
-  background: rgba(3, 169, 148, 0.1);
-  color: #087768;
+  background: rgba(11, 93, 70, 0.1);
+  color: #0b5d46;
   font-size: 0.9rem;
 }
 
@@ -4017,7 +4356,7 @@ th {
   width: 52px;
   height: 52px;
   border-radius: 999px;
-  background: rgba(3, 169, 148, 0.12);
+  background: rgba(11, 93, 70, 0.12);
   color: var(--smile-teal-dark);
 }
 
@@ -4223,7 +4562,7 @@ th {
   width: 44px;
   height: 44px;
   border-radius: 999px;
-  background: rgba(3, 169, 148, 0.1);
+  background: rgba(11, 93, 70, 0.1);
   color: var(--smile-text);
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   font-size: 1.5rem;

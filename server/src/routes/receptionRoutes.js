@@ -11,7 +11,7 @@ import { getInheritanceChain } from "../config/roleHierarchy.js";
 import User from "../models/User.js";
 import { authorize, requireAuth } from "../middlewares/auth.js";
 import { hashPassword } from "../utils/password.js";
-import { endOfLocalDay, startOfLocalDay } from "../utils/time.js";
+import { combineDateAndTime, endOfLocalDay, startOfLocalDay, toDateInputValue } from "../utils/time.js";
 import {
   futureDateInputSchema,
   nameSchema,
@@ -29,25 +29,29 @@ function phoneEmail(phone) {
   return `${phone.replace(/\D/g, "")}@phone.das.local`;
 }
 
-async function autoMarkOverdueNoShows(dateText) {
+async function autoCancelAfterClinicClose(dateText) {
+  const now = new Date();
+  const targetDate = dateText || toDateInputValue(now);
+  if (now <= combineDateAndTime(targetDate, "17:30")) {
+    return;
+  }
+
   const query = {
-    status: { $in: ["scheduled", "confirmed"] },
+    status: { $in: ["pending", "scheduled", "confirmed", "waitlisted"] },
     checkedInAt: { $exists: false },
     cancelledAt: { $exists: false },
-    arrivalAt: { $lt: new Date() }
+    startAt: {
+      $gte: startOfLocalDay(targetDate),
+      $lte: endOfLocalDay(targetDate)
+    }
   };
-
-  if (dateText) {
-    query.startAt = {
-      $gte: startOfLocalDay(dateText),
-      $lte: endOfLocalDay(dateText)
-    };
-  }
 
   await Appointment.updateMany(query, {
     $set: {
-      status: "no_show",
-      receptionistNote: "Hệ thống tự chuyển vắng mặt vì đã quá thời gian check-in."
+      status: "cancelled",
+      cancelledAt: now,
+      cancellationReason: "Hệ thống tự hủy vì bệnh nhân chưa check-in trước 17:30.",
+      receptionistNote: "Hệ thống tự hủy vì bệnh nhân chưa có trạng thái Có mặt trước 17:30."
     }
   });
 }
@@ -71,7 +75,7 @@ router.get("/dashboard", async (req, res) => {
     };
   }
 
-  await autoMarkOverdueNoShows(req.query.date);
+  await autoCancelAfterClinicClose(req.query.date);
 
   const [appointments, patients, services, consultations, rooms] = await Promise.all([
     Appointment.find(appointmentQuery)
@@ -118,6 +122,31 @@ router.get("/patients", async (req, res) => {
 
   const patients = await User.find(filter).select("-passwordHash").sort({ fullName: 1 }).limit(50);
   res.json({ patients });
+});
+
+router.patch("/patients/:id/reset-password", async (req, res, next) => {
+  try {
+    const schema = z.object({
+      password: passwordSchema.default("Password123!")
+    });
+    const data = schema.parse(req.body || {});
+    const patient = await User.findOne({ _id: req.params.id, role: "patient", status: "active" });
+
+    if (!patient) {
+      const err = new Error("Không tìm thấy tài khoản bệnh nhân.");
+      err.statusCode = 404;
+      throw err;
+    }
+
+    patient.passwordHash = await hashPassword(data.password);
+    await patient.save();
+
+    const object = patient.toObject();
+    delete object.passwordHash;
+    res.json({ patient: object, temporaryPassword: data.password });
+  } catch (error) {
+    next(error);
+  }
 });
 
 router.post("/patients", async (req, res, next) => {

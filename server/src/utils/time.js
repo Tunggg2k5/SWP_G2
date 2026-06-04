@@ -4,8 +4,8 @@ export const TURNOVER_MINUTES = 10;
 export const CLINIC_UTC_OFFSET_MINUTES = 7 * 60;
 
 export const WORKING_SESSIONS = [
-  { label: "Ca sáng", start: "07:00", end: "11:30" },
-  { label: "Ca chiều", start: "13:30", end: "17:30" }
+  { label: "Ca sáng", start: "08:00", end: "11:30" },
+  { label: "Ca chiều", start: "14:00", end: "17:30" }
 ];
 
 export function parseDateParts(dateString) {
@@ -81,13 +81,13 @@ export function toDateInputValue(date) {
 
 export function calculateArrivalAt(startAt) {
   const appointmentMinutes = clinicMinutesOfDay(startAt);
-  const morningArrivalCutoff = 8 * 60;
-  const afternoonStart = 13 * 60 + 30;
-  const afternoonArrivalCutoff = 14 * 60 + 30;
+  const morningArrivalCutoff = 9 * 60;
+  const afternoonStart = 14 * 60;
+  const afternoonArrivalCutoff = 15 * 60;
 
-  if (appointmentMinutes < morningArrivalCutoff) return clinicTimeOnSameDay(startAt, "07:00");
+  if (appointmentMinutes < morningArrivalCutoff) return clinicTimeOnSameDay(startAt, "08:00");
   if (appointmentMinutes >= afternoonStart && appointmentMinutes < afternoonArrivalCutoff) {
-    return clinicTimeOnSameDay(startAt, "13:30");
+    return clinicTimeOnSameDay(startAt, "14:00");
   }
 
   return addMinutes(startAt, -60);

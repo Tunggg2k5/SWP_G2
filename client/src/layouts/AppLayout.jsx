@@ -6,8 +6,11 @@ import {
   ChevronRight,
   ClipboardList,
   DoorOpen,
+  Home,
+  Info,
   LockKeyhole,
   LogOut,
+  Mail,
   PhoneCall,
   Save,
   Search,
@@ -30,6 +33,7 @@ const receptionistTabs = [
   { id: "appointments", label: "Lịch hẹn", icon: ClipboardList },
   { id: "schedule", label: "Lịch khám", icon: CalendarDays },
   { id: "booking", label: "Đặt lịch hộ", icon: CalendarPlus },
+  { id: "accounts", label: "Tài khoản", icon: LockKeyhole },
   { id: "consultations", label: "Tư vấn", icon: PhoneCall }
 ];
 
@@ -41,7 +45,14 @@ const genderOptions = [
 ];
 
 function navForRole(role) {
-  if (role === "patient") return [];
+  if (role === "patient") {
+    return [
+      { to: "/dashboard#home", label: "Trang chủ", icon: Home },
+      { to: "/dashboard#services", label: "Dịch vụ", icon: Search },
+      { to: "/dashboard#about", label: "Giới thiệu", icon: Info },
+      { to: "/dashboard#contact", label: "Liên hệ", icon: Mail }
+    ];
+  }
   if (role === "receptionist") return receptionistTabs.map((item) => ({ ...item, to: `/dashboard?tab=${item.id}`, isTab: true }));
 
   const base = [];
@@ -185,7 +196,7 @@ export default function AppLayout() {
       <header className="app-topnav">
         <Link className="top-brand" to={user?.role === "patient" ? "/dashboard" : "/"}>
           <DoorOpen size={24} />
-          <span>Phòng khám DAS</span>
+          <span>{user?.role === "patient" ? "SmileCare" : "Phòng khám DAS"}</span>
         </Link>
 
         <nav className="top-nav-list" aria-label="Điều hướng chính">
