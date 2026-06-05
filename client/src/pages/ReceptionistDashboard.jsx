@@ -1,4 +1,4 @@
-import { CalendarDays, CalendarPlus, CheckCheck, ClipboardList, KeyRound, PhoneCall, Search } from "lucide-react";
+import { CalendarDays, CalendarPlus, CheckCheck, ClipboardCheck, ClipboardList, KeyRound, PhoneCall, Search } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import EmptyState from "../components/EmptyState.jsx";
@@ -16,7 +16,9 @@ const receptionStatusActionOptions = [
   { value: "completed", label: "Hoàn tất" }
 ];
 
-const scheduleStatuses = new Set(["scheduled", "confirmed", "checked_in", "in_treatment", "completed", "cancelled", "no_show"]);
+const checkInStatuses = new Set(["scheduled", "confirmed", "no_show"]);
+const clinicalQueueStatuses = new Set(["checked_in", "in_treatment", "completed"]);
+const acceptedStatuses = new Set([...checkInStatuses, ...clinicalQueueStatuses]);
 const statusActionValues = new Set(receptionStatusActionOptions.map((option) => option.value));
 const intakeStatuses = new Set(["pending", "rejected"]);
 const duplicateContactStatuses = new Set(["pending", "scheduled", "confirmed", "checked_in", "in_treatment"]);
@@ -82,7 +84,7 @@ export default function ReceptionistDashboard() {
 
   useEffect(() => {
     const tab = new URLSearchParams(location.search).get("tab");
-    if (["appointments", "schedule", "booking", "accounts", "consultations"].includes(tab)) {
+    if (["appointments", "checkin", "schedule", "booking", "accounts", "consultations"].includes(tab)) {
       setActiveFeature(tab);
     }
   }, [location.search]);
@@ -131,9 +133,9 @@ export default function ReceptionistDashboard() {
         channel: "offline",
         note: booking.note
       });
-      setMessage("Đã đặt lịch hộ bệnh nhân. Chuyển sang màn cập nhật trạng thái.");
-      setActiveFeature("schedule");
-      navigate("/dashboard?tab=schedule", { replace: true });
+      setMessage("Đã đặt lịch hộ bệnh nhân. Chuyển sang màn Check in.");
+      setActiveFeature("checkin");
+      navigate("/dashboard?tab=checkin", { replace: true });
       load();
     } catch (err) {
       setError(getErrorMessage(err));
@@ -144,11 +146,13 @@ export default function ReceptionistDashboard() {
     if (!window.confirm("Xác nhận cập nhật trạng thái lịch hẹn?")) return;
 
     try {
-      await api.patch(`/appointments/${id}/status`, { status, note });
+      const res = await api.patch(`/appointments/${id}/status`, { status, note });
       setMessage("Đã cập nhật trạng thái lịch hẹn.");
       load();
+      return res.data.appointment;
     } catch (err) {
       setError(getErrorMessage(err));
+      return null;
     }
   }
 
@@ -165,10 +169,10 @@ export default function ReceptionistDashboard() {
         status,
         note: `Lễ tân ${labels[status]}.`
       });
-      setMessage(status === "confirmed" ? "Đã chấp nhận lịch hẹn. Chuyển sang màn cập nhật trạng thái." : "Đã từ chối lịch hẹn.");
+      setMessage(status === "confirmed" ? "Đã chấp nhận lịch hẹn. Chuyển sang màn Check in." : "Đã từ chối lịch hẹn.");
       if (status === "confirmed") {
-        setActiveFeature("schedule");
-        navigate("/dashboard?tab=schedule", { replace: true });
+        setActiveFeature("checkin");
+        navigate("/dashboard?tab=checkin", { replace: true });
       }
       load();
     } catch (err) {
@@ -183,7 +187,12 @@ export default function ReceptionistDashboard() {
     }
 
     const value = statusActions[appointment._id] || defaultStatusAction(appointment);
-    await updateAppointment(appointment._id, value);
+    const updated = await updateAppointment(appointment._id, value);
+    if (updated && clinicalQueueStatuses.has(value)) {
+      setMessage("Đã cập nhật bệnh nhân vào Lịch khám theo thứ tự.");
+      setActiveFeature("schedule");
+      navigate("/dashboard?tab=schedule", { replace: true });
+    }
   }
 
   async function rescheduleAppointment(appointment) {
@@ -203,12 +212,12 @@ export default function ReceptionistDashboard() {
 
     try {
       await api.patch(`/appointments/${appointment._id}/reschedule`, { date: nextDate, startAt: slot.startAt, roomId: slot.room._id });
-      setMessage("Đã đổi lịch bệnh nhân. Chuyển sang màn cập nhật trạng thái.");
+      setMessage("Đã đổi lịch bệnh nhân. Chuyển sang màn Check in.");
       setRescheduleDates((current) => ({ ...current, [appointment._id]: "" }));
       setRescheduleSlots((current) => ({ ...current, [appointment._id]: [] }));
       setRescheduleSlotKeys((current) => ({ ...current, [appointment._id]: "" }));
-      setActiveFeature("schedule");
-      navigate("/dashboard?tab=schedule", { replace: true });
+      setActiveFeature("checkin");
+      navigate("/dashboard?tab=checkin", { replace: true });
       load();
     } catch (err) {
       setError(getErrorMessage(err));
@@ -260,10 +269,12 @@ export default function ReceptionistDashboard() {
 
   const filteredBaseAppointments = appointments.filter((appointment) => matchesAppointmentFilters(appointment, appointmentSearch, roomFilter));
   const pendingAppointments = filteredBaseAppointments.filter((appointment) => intakeStatuses.has(appointment.status));
-  const scheduleAppointments = filteredBaseAppointments.filter((appointment) => scheduleStatuses.has(appointment.status));
+  const checkInAppointments = filteredBaseAppointments.filter((appointment) => checkInStatuses.has(appointment.status));
+  const clinicalQueueAppointments = filteredBaseAppointments.filter((appointment) => clinicalQueueStatuses.has(appointment.status));
   const pendingIntakeCount = appointments.filter((appointment) => appointment.status === "pending").length;
   const rejectedIntakeCount = appointments.filter((appointment) => appointment.status === "rejected").length;
-  const acceptedCount = appointments.filter((appointment) => scheduleStatuses.has(appointment.status)).length;
+  const acceptedCount = appointments.filter((appointment) => acceptedStatuses.has(appointment.status)).length;
+  const checkInCount = appointments.filter((appointment) => checkInStatuses.has(appointment.status)).length;
   const duplicateContactCount = pendingAppointments.filter((appointment) => duplicateBookingInfo(appointment, appointments).shouldContact).length;
   const checkedInCount = appointments.filter((appointment) => appointment.status === "checked_in").length;
   const inTreatmentCount = appointments.filter((appointment) => appointment.status === "in_treatment").length;
@@ -275,7 +286,7 @@ export default function ReceptionistDashboard() {
 
   const dentistColumns = useMemo(() => {
     const roomDentists = rooms.map((room) => room.assignedDentist).filter(Boolean);
-    const appointmentDentists = scheduleAppointments.map((appointment) => appointment.dentist).filter(Boolean);
+    const appointmentDentists = clinicalQueueAppointments.map((appointment) => appointment.dentist).filter(Boolean);
     const merged = Array.from(new Map([...roomDentists, ...appointmentDentists].map((dentist) => [dentist._id, dentist])).values()).slice(0, 3);
 
     while (merged.length < 3) {
@@ -287,18 +298,18 @@ export default function ReceptionistDashboard() {
     }
 
     return merged;
-  }, [rooms, scheduleAppointments]);
+  }, [rooms, clinicalQueueAppointments]);
 
   const appointmentsByDentist = useMemo(() => {
     const map = new Map(dentistColumns.map((dentist) => [dentist._id, []]));
-    scheduleAppointments
+    clinicalQueueAppointments
       .filter((appointment) => appointment.dentist?._id && map.has(appointment.dentist._id))
       .sort(compareQueueOrder)
       .forEach((appointment) => {
         map.get(appointment.dentist._id).push(appointment);
       });
     return map;
-  }, [dentistColumns, scheduleAppointments]);
+  }, [dentistColumns, clinicalQueueAppointments]);
 
   const queueRowCount = Math.max(1, ...Array.from(appointmentsByDentist.values()).map((items) => items.length));
 
@@ -408,7 +419,77 @@ export default function ReceptionistDashboard() {
               })}
             </div>
           ) : (
-            <EmptyState title="Không có lịch chờ xử lý" text="Các lịch đã chấp nhận sẽ nằm ở chức năng Lịch khám." />
+            <EmptyState title="Không có lịch chờ xử lý" text="Các lịch đã chấp nhận sẽ nằm ở chức năng Check in." />
+          )}
+        </section>
+      )}
+
+      {activeFeature === "checkin" && (
+        <section className="panel reception-checkin-panel">
+          <div className="section-title">
+            <ClipboardCheck size={20} />
+            <h2>Check in bệnh nhân</h2>
+          </div>
+          <p className="muted">Lịch đã được lễ tân xác nhận hoặc đặt hộ sẽ nằm ở đây. Cập nhật “Có mặt” để đưa bệnh nhân sang Lịch khám theo thứ tự.</p>
+
+          <div className="metrics-grid compact-grid">
+            <ReceptionMetric icon={ClipboardCheck} label="Chờ check in" value={checkInCount} />
+            <ReceptionMetric icon={CheckCheck} label="Đã có mặt" value={checkedInCount} />
+            <ReceptionMetric icon={ClipboardList} label="Đang khám" value={inTreatmentCount} />
+          </div>
+
+          <ReceptionFilters
+            date={date}
+            setDate={setDate}
+            rooms={rooms}
+            roomFilter={roomFilter}
+            setRoomFilter={setRoomFilter}
+            appointmentSearch={appointmentSearch}
+            setAppointmentSearch={setAppointmentSearch}
+          />
+
+          {loading ? (
+            <EmptyState title="Đang tải danh sách check in" text="Hệ thống đang lấy dữ liệu mới nhất." />
+          ) : checkInAppointments.length ? (
+            <div className="appointment-list checkin-list">
+              {checkInAppointments.map((appointment) => (
+                <article className="appointment-card reception-checkin-card" key={appointment._id}>
+                  <div className="appointment-card-main">
+                    <div className="patient-contact-row">
+                      <div>
+                        <h4>{appointment.patient?.fullName || "Bệnh nhân"}</h4>
+                        <p>{appointment.patient?.phone || "Chưa có SĐT"}</p>
+                      </div>
+                      <StatusBadge value={appointment.status} />
+                    </div>
+                    <div className="appointment-slot-box">
+                      <strong>{appointment.service?.name || "Dịch vụ"}</strong>
+                      <span>{formatDateTime(appointment.startAt)} - {appointment.room?.name || "Phòng khám"}</span>
+                      <span>Bác sĩ: {appointment.dentist?.fullName || "-"}</span>
+                      {appointment.patientNote && <span>Ghi chú: {appointment.patientNote}</span>}
+                    </div>
+                  </div>
+
+                  <div className="row-actions schedule-status-actions checkin-status-actions">
+                    <select
+                      value={statusActions[appointment._id] || defaultStatusAction(appointment)}
+                      onChange={(e) => setStatusActions((current) => ({ ...current, [appointment._id]: e.target.value }))}
+                    >
+                      {receptionStatusActionOptions.map((option) => (
+                        <option value={option.value} key={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <button className="button small primary" onClick={() => applyScheduleStatus(appointment)}>
+                      Cập nhật
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <EmptyState title="Không có lịch chờ check in" text="Lịch sau khi xác nhận hoặc đặt hộ sẽ xuất hiện ở đây." />
           )}
         </section>
       )}
@@ -421,7 +502,7 @@ export default function ReceptionistDashboard() {
           </div>
 
           <div className="metrics-grid compact-grid">
-            <ReceptionMetric icon={CalendarDays} label="Lịch trong bảng" value={scheduleAppointments.length} />
+            <ReceptionMetric icon={CalendarDays} label="Lịch trong hàng đợi" value={clinicalQueueAppointments.length} />
             <ReceptionMetric icon={CheckCheck} label="Có mặt" value={checkedInCount} />
             <ReceptionMetric icon={ClipboardList} label="Đang khám" value={inTreatmentCount} />
           </div>
@@ -725,10 +806,6 @@ function matchesAppointmentFilters(appointment, appointmentSearch, roomFilter) {
     .toLowerCase();
 
   return matchesRoom && (!keyword || searchableText.includes(keyword));
-}
-
-function isPatientCancelled(appointment) {
-  return appointment.status === "cancelled" && appointment.cancelledByRole === "patient";
 }
 
 function isLockedScheduleAppointment(appointment) {

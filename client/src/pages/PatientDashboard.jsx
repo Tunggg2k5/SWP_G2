@@ -363,16 +363,24 @@ export default function PatientDashboard() {
 }
 
 function PatientHome({ activeAppointments, dentistOptions, nextAppointment, notifications, records, reviews, services, setActiveFeature }) {
+  const visibleServices = services.length ? services.slice(0, 5) : [
+    { _id: "implant", name: "Cấy ghép Implant", description: "Phục hồi răng mất bằng giải pháp implant hiện đại.", price: 0 },
+    { _id: "cosmetic", name: "Thẩm mỹ răng sứ", description: "Thiết kế nụ cười tự nhiên, cân đối và bền đẹp.", price: 0 },
+    { _id: "ortho", name: "Chỉnh nha niềng răng", description: "Theo dõi lộ trình chỉnh nha phù hợp từng bệnh nhân.", price: 0 },
+    { _id: "general", name: "Điều trị tổng quát", description: "Thăm khám, điều trị và chăm sóc răng miệng định kỳ.", price: 0 }
+  ];
+  const recentReviews = reviews.slice(0, 4);
+
   return (
-    <div className="patient-public-home">
-      <section className="patient-public-hero" id="home">
-        <div className="patient-public-copy">
-          <span className="smile-pill">Nha khoa uy tín hàng đầu</span>
-          <h1>Nụ cười rạng rỡ, tự tin tỏa sáng</h1>
-          <p>SmileCare mang đến giải pháp chăm sóc răng miệng toàn diện với công nghệ hiện đại và đội ngũ bác sĩ giàu kinh nghiệm.</p>
+    <div className="patient-public-home patient-dark-home">
+      <section className="patient-dark-hero" id="home">
+        <div className="patient-dark-hero-copy">
+          <span className="patient-dark-pill">Dịch vụ của chúng tôi</span>
+          <h1>Chăm Sóc Toàn Diện Cho Nụ Cười Của Bạn</h1>
+          <p>Từ kiểm tra định kỳ đến các giải pháp thẩm mỹ nha khoa, SmileCare đồng hành cùng bạn trong hành trình chăm sóc sức khỏe răng miệng.</p>
           <div className="patient-home-actions">
             <button className="button primary" onClick={() => setActiveFeature("booking")}>
-              Đặt lịch
+              Đặt lịch ngay
             </button>
             <button className="button ghost" onClick={() => setActiveFeature("appointments")}>
               Xem lịch hẹn
@@ -380,7 +388,7 @@ function PatientHome({ activeAppointments, dentistOptions, nextAppointment, noti
           </div>
         </div>
 
-        <div className="patient-home-panel">
+        <div className="patient-home-panel patient-dark-panel">
           <div className="section-title tight-title">
             <CalendarClock size={20} />
             <h2>Trung tâm bệnh nhân</h2>
@@ -402,56 +410,64 @@ function PatientHome({ activeAppointments, dentistOptions, nextAppointment, noti
         </div>
       </section>
 
-      <section className="patient-public-section" id="services">
-        <div className="section-title">
-          <CalendarPlus size={20} />
-          <h2>Dịch vụ nha khoa</h2>
+      <section className="patient-dark-section" id="services">
+        <div className="patient-dark-section-head">
+          <span className="patient-dark-pill">Dịch vụ nha khoa</span>
+          <h2>Chăm sóc toàn diện cho từng nhu cầu điều trị</h2>
         </div>
-        <div className="patient-public-grid">
-          {services.slice(0, 6).map((service) => (
-            <article className="patient-info-card" key={service._id}>
-              <strong>{service.name}</strong>
-              <p>{service.description || "Dịch vụ chăm sóc răng miệng tại phòng khám."}</p>
-              <span>{formatMoney(service.price)}</span>
+        <div className="patient-dark-service-grid">
+          {visibleServices.map((service, index) => (
+            <article className={`patient-dark-service-card service-tone-${index % 5}`} key={service._id}>
+              <span className="patient-service-badge">
+                <CalendarPlus size={18} />
+              </span>
+              <div>
+                <h3>{service.name}</h3>
+                <p>{service.description || "Dịch vụ chăm sóc răng miệng tại phòng khám."}</p>
+              </div>
+              {service.price ? <strong>{formatMoney(service.price)}</strong> : <strong>Liên hệ tư vấn</strong>}
             </article>
           ))}
         </div>
       </section>
 
-      <section className="patient-public-section" id="about">
-        <div className="section-title">
-          <Home size={20} />
-          <h2>Giới thiệu phòng khám</h2>
-        </div>
-        <div className="patient-about-grid">
+      <section className="patient-dark-section patient-dark-about" id="about">
+        <div className="patient-dark-visual-panel" />
+        <div className="patient-dark-info-stack">
+          <span className="patient-dark-pill gold">Tư vấn nhanh</span>
+          <h2>Giải đáp thắc mắc về sức khỏe răng miệng</h2>
           <article>
-            <strong>1 chi nhánh tại TP. Hồ Chí Minh</strong>
-            <p>Không gian thăm khám sáng, sạch và được vận hành theo quy trình đặt lịch rõ ràng.</p>
+            <strong>Thời gian làm việc</strong>
+            <p>Thứ 2 - Thứ 7, 8h-11h30 và 14h-17h30.</p>
           </article>
           <article>
-            <strong>{dentistOptions.length || 3} bác sĩ nha khoa</strong>
-            <p>Đội ngũ bác sĩ phụ trách tư vấn, điều trị và theo dõi lịch sử khám của từng bệnh nhân.</p>
+            <strong>Đội ngũ bác sĩ</strong>
+            <p>{dentistOptions.length || 3} bác sĩ phụ trách khám, tư vấn và theo dõi điều trị.</p>
           </article>
           <article>
-            <strong>Thứ 2 - Thứ 7</strong>
-            <p>8h-11h30 và 14h-17h30.</p>
+            <strong>Quản lý lịch hẹn</strong>
+            <p>Bạn có thể đặt lịch, đổi lịch hoặc hủy lịch khi lịch chưa bị hủy, vắng mặt hoặc hoàn tất.</p>
           </article>
         </div>
       </section>
 
-      <section className="patient-public-section" id="contact">
-        <div className="section-title">
-          <Star size={20} />
-          <h2>Đánh giá gần đây của tôi</h2>
+      <section className="patient-dark-section" id="contact">
+        <div className="patient-dark-section-head">
+          <span className="patient-dark-pill gold">Khách hàng nói gì</span>
+          <h2>Đánh giá gần đây nhất của tôi</h2>
         </div>
-        {reviews.length ? (
-          <div className="patient-review-grid">
-            {reviews.map((review) => (
-              <article className="patient-info-card" key={review._id}>
-                <strong>{review.service?.name || "Dịch vụ"}</strong>
-                <span>{review.rating || review.ratingService || 5}/5 sao</span>
+        {recentReviews.length ? (
+          <div className="patient-dark-review-grid">
+            {recentReviews.map((review) => (
+              <article className="patient-dark-review-card" key={review._id}>
+                <div className="review-stars" aria-label={`${review.rating || review.ratingService || 5} sao`}>
+                  {Array.from({ length: Number(review.rating || review.ratingService || 5) }, (_, index) => <Star fill="currentColor" size={15} key={index} />)}
+                </div>
                 <p>{review.comment || "Chưa có nhận xét chi tiết."}</p>
-                <small>{review.dentist?.fullName || "Bác sĩ phòng khám"}</small>
+                <div>
+                  <strong>{review.service?.name || "Dịch vụ"}</strong>
+                  <span>{review.dentist?.fullName || "Bác sĩ phòng khám"}</span>
+                </div>
               </article>
             ))}
           </div>
@@ -459,6 +475,18 @@ function PatientHome({ activeAppointments, dentistOptions, nextAppointment, noti
           <EmptyState title="Chưa có đánh giá gần đây" text="Sau khi lịch hoàn tất, bạn có thể gửi đánh giá tại tab Lịch hẹn." />
         )}
       </section>
+
+      <footer className="patient-dark-footer">
+        <div>
+          <strong>Smile<span>Care</span></strong>
+          <p>Nha khoa SmileCare - Đồng hành cùng nụ cười Việt.</p>
+        </div>
+        <nav>
+          <a href="#services">Dịch vụ</a>
+          <a href="#about">Giới thiệu</a>
+          <button type="button" onClick={() => setActiveFeature("booking")}>Đặt lịch</button>
+        </nav>
+      </footer>
     </div>
   );
 }

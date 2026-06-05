@@ -4,6 +4,7 @@ import {
   CalendarPlus,
   Camera,
   ChevronRight,
+  ClipboardCheck,
   ClipboardList,
   DoorOpen,
   Home,
@@ -31,6 +32,7 @@ import { firstError, validateName, validatePassword, validatePhone } from "../ut
 
 const receptionistTabs = [
   { id: "appointments", label: "Lịch hẹn", icon: ClipboardList },
+  { id: "checkin", label: "Check in", icon: ClipboardCheck },
   { id: "schedule", label: "Lịch khám", icon: CalendarDays },
   { id: "booking", label: "Đặt lịch hộ", icon: CalendarPlus },
   { id: "accounts", label: "Tài khoản", icon: LockKeyhole },
