@@ -224,6 +224,41 @@ export default function ReceptionistDashboard() {
     }
   }
 
+  async function scheduleReceptionAppointment(appointment) {
+    const nextDate = rescheduleDates[appointment._id];
+    const slotKey = rescheduleSlotKeys[appointment._id];
+    const slot = (rescheduleSlots[appointment._id] || []).find((item) => buildSlotKey(item) === slotKey);
+    if (!nextDate) {
+      setError("Chọn ngày để xếp lịch cho bệnh nhân.");
+      return;
+    }
+    if (!slot) {
+      setError("Chọn giờ khám và bác sĩ trước khi gửi lại lịch cho bệnh nhân.");
+      return;
+    }
+
+    if (!window.confirm(`Xếp lịch ${formatTime(slot.startAt)} với ${slot.dentist?.fullName || "bác sĩ"} và gửi thông báo cho bệnh nhân?`)) return;
+
+    try {
+      await api.patch(`/appointments/${appointment._id}/reception-schedule`, {
+        serviceId: appointment.service?._id,
+        date: nextDate,
+        startAt: slot.startAt,
+        roomId: slot.room._id,
+        note: "Lễ tân đã xếp giờ khám và bác sĩ cho bệnh nhân."
+      });
+      setMessage("Đã xếp lịch và gửi thông tin lịch hẹn cho bệnh nhân.");
+      setRescheduleDates((current) => ({ ...current, [appointment._id]: "" }));
+      setRescheduleSlots((current) => ({ ...current, [appointment._id]: [] }));
+      setRescheduleSlotKeys((current) => ({ ...current, [appointment._id]: "" }));
+      setActiveFeature("checkin");
+      navigate("/dashboard?tab=checkin", { replace: true });
+      load();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  }
+
   async function loadRescheduleSlots(appointment) {
     const nextDate = rescheduleDates[appointment._id];
     if (!nextDate) {
@@ -232,7 +267,7 @@ export default function ReceptionistDashboard() {
     }
 
     try {
-      const res = await api.get("/availability", { params: { serviceId: appointment.service?._id, date: nextDate } });
+      const res = await api.get("/availability", { params: { serviceId: appointment.service?._id, date: nextDate, includeBooked: "true" } });
       const slots = res.data.slots || [];
       setRescheduleSlots((current) => ({ ...current, [appointment._id]: slots }));
       setRescheduleSlotKeys((current) => ({ ...current, [appointment._id]: slots[0] ? buildSlotKey(slots[0]) : "" }));
@@ -361,7 +396,9 @@ export default function ReceptionistDashboard() {
                       <div className="appointment-slot-box">
                         <strong>Slot bệnh nhân đã đặt</strong>
                         <span>{appointment.service?.name} - {formatDateTime(appointment.startAt)}</span>
+                        <span>Giờ đến dự kiến: {formatDateTime(appointment.arrivalAt)}</span>
                         <span>Phòng: {appointment.room?.name || "-"} / Bác sĩ: {appointment.dentist?.fullName || "-"}</span>
+                        <span>Bác sĩ mong muốn: {appointment.dentistPreference === "random" ? "Ngẫu nhiên, lễ tân xếp bác sĩ" : "Bệnh nhân đã chọn bác sĩ"}</span>
                         <span>Y tá: {appointment.nurse?.fullName || "Chưa phân công"} / Kênh: {appointment.channel === "online" ? "Online" : "Tại quầy"}</span>
                       </div>
                       {duplicateInfo.shouldContact && (
@@ -395,7 +432,7 @@ export default function ReceptionistDashboard() {
                           }}
                         />
                         <button className="button small" onClick={() => loadRescheduleSlots(appointment)}>
-                          Xem slot
+                          Xem giờ/bác sĩ
                         </button>
                         {(rescheduleSlots[appointment._id] || []).length > 0 && (
                           <select
@@ -404,13 +441,13 @@ export default function ReceptionistDashboard() {
                           >
                             {(rescheduleSlots[appointment._id] || []).map((slot) => (
                               <option value={buildSlotKey(slot)} key={buildSlotKey(slot)}>
-                                {formatTime(slot.startAt)} - {slot.room.name} - {slot.dentist?.fullName}
+                                {formatTime(slot.startAt)} - {slot.room.name} - {slot.dentist?.fullName}{slot.isBooked ? ` (${slot.bookedCount} lịch)` : ""}
                               </option>
                             ))}
                           </select>
                         )}
-                        <button className="button small" onClick={() => rescheduleAppointment(appointment)}>
-                          Đổi lịch
+                        <button className="button small primary" onClick={() => scheduleReceptionAppointment(appointment)}>
+                          Xếp lịch & gửi
                         </button>
                       </div>
                     </div>

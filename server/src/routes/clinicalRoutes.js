@@ -2,27 +2,34 @@ import { Router } from "express";
 import { z } from "zod";
 import Appointment from "../models/Appointment.js";
 import ClinicRoom from "../models/ClinicRoom.js";
+import DentalService from "../models/DentalService.js";
+import Notification from "../models/Notification.js";
 import Prescription from "../models/Prescription.js";
 import RoomStatus from "../models/RoomStatus.js";
 import TreatmentRecord from "../models/TreatmentRecord.js";
 import TreatmentPlan from "../models/TreatmentPlan.js";
 import { authorize, requireAuth } from "../middlewares/auth.js";
 import { endOfLocalDay, startOfLocalDay } from "../utils/time.js";
+import { createAppointmentFromSlot } from "../services/schedulingService.js";
+import {
+  futureDateInputSchema,
+  noteSchema,
+  optionalIsoDateTimeSchema,
+  optionalObjectIdSchema
+} from "../utils/validation.js";
 
 const router = Router();
 
 router.use(requireAuth, authorize("dentist", "nurse", "admin"));
 
 router.get("/dashboard", async (req, res) => {
-  const scheduleQuery = {};
+  const scheduleQuery = { status: { $in: ["scheduled", "confirmed", "checked_in", "in_treatment", "completed"] } };
   const recordQuery = {};
 
   if (req.user.role === "dentist") {
-    scheduleQuery.dentist = req.user._id;
     recordQuery.dentist = req.user._id;
   }
   if (req.user.role === "nurse") {
-    scheduleQuery.nurse = req.user._id;
     recordQuery.nurse = req.user._id;
   }
   if (req.query.date) {
@@ -32,7 +39,7 @@ router.get("/dashboard", async (req, res) => {
     };
   }
 
-  const [appointments, records, rooms] = await Promise.all([
+  const [appointments, records, rooms, services] = await Promise.all([
     Appointment.find(scheduleQuery)
       .populate([
         { path: "patient", select: "fullName phone email" },
@@ -54,19 +61,18 @@ router.get("/dashboard", async (req, res) => {
       .sort({ updatedAt: -1 })
       .limit(60)
       .lean(),
-    req.user.role === "nurse"
-      ? ClinicRoom.find().sort({ name: 1 }).lean()
-      : Promise.resolve([])
+    ClinicRoom.find()
+      .populate("assignedDentist", "fullName specialty")
+      .sort({ name: 1 })
+      .lean(),
+    DentalService.find({ isActive: true }).sort({ name: 1 }).lean()
   ]);
 
-  res.json({ appointments, records, rooms });
+  res.json({ appointments, records, rooms, services });
 });
 
 router.get("/schedule", async (req, res) => {
-  const query = {};
-
-  if (req.user.role === "dentist") query.dentist = req.user._id;
-  if (req.user.role === "nurse") query.nurse = req.user._id;
+  const query = { status: { $in: ["scheduled", "confirmed", "checked_in", "in_treatment", "completed"] } };
   if (req.query.date) {
     query.startAt = {
       $gte: startOfLocalDay(req.query.date),
@@ -137,7 +143,7 @@ router.get("/patients/:patientId/history", async (req, res, next) => {
   }
 });
 
-router.put("/appointments/:appointmentId/treatment-record", authorize("nurse", "admin"), async (req, res, next) => {
+router.put("/appointments/:appointmentId/treatment-record", authorize("dentist", "nurse", "admin"), async (req, res, next) => {
   try {
     const schema = z.object({
       vitalSigns: z
@@ -164,10 +170,14 @@ router.put("/appointments/:appointmentId/treatment-record", authorize("nurse", "
       throw err;
     }
 
-    const canEdit = req.user.role === "admin" || appointment.nurse?.toString() === req.user._id.toString();
+    const canEdit =
+      req.user.role === "admin" ||
+      req.user.role === "nurse" ||
+      appointment.nurse?.toString() === req.user._id.toString() ||
+      appointment.dentist?.toString() === req.user._id.toString();
 
     if (!canEdit) {
-      const err = new Error("Chỉ y tá được phân công mới được cập nhật hồ sơ điều trị.");
+      const err = new Error("Chỉ nhân sự được phân công mới được cập nhật điều trị.");
       err.statusCode = 403;
       throw err;
     }
@@ -178,7 +188,7 @@ router.put("/appointments/:appointmentId/treatment-record", authorize("nurse", "
         $set: {
           patient: appointment.patient,
           dentist: appointment.dentist,
-          nurse: appointment.nurse,
+          nurse: req.user.role === "nurse" ? req.user._id : appointment.nurse,
           vitalSigns: data.vitalSigns,
           diagnosis: data.diagnosis,
           treatmentResult: data.treatmentResult,
@@ -226,6 +236,74 @@ router.put("/appointments/:appointmentId/treatment-record", authorize("nurse", "
   }
 });
 
+router.post("/appointments/:appointmentId/follow-up", authorize("dentist", "admin"), async (req, res, next) => {
+  try {
+    const schema = z.object({
+      serviceId: optionalObjectIdSchema,
+      date: futureDateInputSchema,
+      startAt: optionalIsoDateTimeSchema,
+      roomId: optionalObjectIdSchema,
+      note: noteSchema
+    });
+    const data = schema.parse(req.body);
+    const source = await Appointment.findById(req.params.appointmentId).populate("service", "name");
+
+    if (!source) {
+      const err = new Error("Không tìm thấy lịch hẹn gốc.");
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (req.user.role === "dentist" && source.dentist?.toString() !== req.user._id.toString()) {
+      const err = new Error("Chỉ bác sĩ phụ trách mới được đặt lịch tái khám cho bệnh nhân này.");
+      err.statusCode = 403;
+      throw err;
+    }
+
+    let roomId = data.roomId;
+    if (!roomId && req.user.role === "dentist") {
+      const room = await ClinicRoom.findOne({ assignedDentist: req.user._id, isActive: true }).select("_id").lean();
+      roomId = room?._id;
+    }
+
+    if (!roomId) {
+      const err = new Error("Cần chọn phòng/bác sĩ để đặt lịch tái khám.");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const appointment = await createAppointmentFromSlot({
+      requester: req.user,
+      patientId: source.patient,
+      serviceId: data.serviceId || source.service?._id || source.service,
+      date: data.date,
+      startAt: data.startAt,
+      roomId,
+      channel: "offline",
+      note: data.note || `Lịch tái khám từ lịch ${source.service?.name || "khám"}.`,
+      dentistPreference: "selected"
+    });
+
+    await appointment.populate([
+      { path: "patient", select: "fullName phone email" },
+      { path: "dentist", select: "fullName specialty" },
+      { path: "room", select: "name status" },
+      { path: "service", select: "name durationMinutes" }
+    ]);
+
+    await Notification.create({
+      user: appointment.patient?._id || appointment.patient,
+      title: "Bác sĩ đã đặt lịch tái khám",
+      message: `Lịch tái khám của bạn được đặt lúc ${formatClinicDateTime(appointment.startAt)} với ${appointment.dentist?.fullName || "bác sĩ"}.`,
+      isRead: false
+    });
+
+    res.status(201).json({ appointment });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.patch("/rooms/:id/status", authorize("nurse", "admin"), async (req, res, next) => {
   try {
     const schema = z.object({
@@ -254,3 +332,15 @@ router.patch("/rooms/:id/status", authorize("nurse", "admin"), async (req, res, 
 });
 
 export default router;
+
+function formatClinicDateTime(value) {
+  return new Intl.DateTimeFormat("vi-VN", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).format(new Date(value));
+}

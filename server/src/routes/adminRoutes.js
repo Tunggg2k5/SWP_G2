@@ -50,7 +50,7 @@ router.get("/stats", async (_req, res) => {
 });
 
 router.get("/dashboard", async (_req, res) => {
-  const [stats, users, services, rooms, roleHierarchy, workingHours, timeSlots] = await Promise.all([
+  const [stats, users, services, rooms, roleHierarchy, workingHours, timeSlots, reviews] = await Promise.all([
     buildAdminStats(),
     User.find({}).select("-passwordHash").sort({ role: 1, fullName: 1 }).limit(160).lean(),
     DentalService.find({ isActive: true }).sort({ name: 1 }).lean(),
@@ -60,10 +60,17 @@ router.get("/dashboard", async (_req, res) => {
       .lean(),
     Promise.resolve(getRoleHierarchyList()),
     ClinicWorkingHour.find().sort({ dayOfWeek: 1, startTime: 1 }).lean(),
-    TimeSlot.find().sort({ startTime: 1 }).lean()
+    TimeSlot.find().sort({ startTime: 1 }).lean(),
+    Review.find({})
+      .populate("patient", "fullName phone")
+      .populate("dentist", "fullName specialty")
+      .populate("service", "name")
+      .sort({ createdAt: -1 })
+      .limit(80)
+      .lean()
   ]);
 
-  res.json({ stats, users, services, rooms, roleHierarchy, workingHours, timeSlots });
+  res.json({ stats, users, services, rooms, roleHierarchy, workingHours, timeSlots, reviews });
 });
 
 async function buildAdminStats() {

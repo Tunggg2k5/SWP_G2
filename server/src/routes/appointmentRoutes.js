@@ -156,6 +156,7 @@ router.post("/", async (req, res, next) => {
       startAt: optionalIsoDateTimeSchema,
       roomId: optionalObjectIdSchema,
       channel: z.enum(["online", "offline"]).optional(),
+      dentistPreference: z.enum(["selected", "random"]).default("selected"),
       note: noteSchema
     });
     const data = schema.parse(req.body);
@@ -181,6 +182,7 @@ router.post("/", async (req, res, next) => {
       startAt: data.startAt,
       roomId: data.roomId,
       channel: req.user.role === "patient" ? "online" : data.channel || "offline",
+      dentistPreference: data.dentistPreference,
       note: data.note
     });
 
@@ -231,6 +233,54 @@ router.patch("/:id/reschedule", async (req, res, next) => {
     }
 
     await updated.populate(populateAppointment);
+    res.json({ appointment: updated });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch("/:id/reception-schedule", authorize("receptionist", "admin"), async (req, res, next) => {
+  try {
+    const schema = z.object({
+      serviceId: optionalObjectIdSchema,
+      date: futureDateInputSchema,
+      startAt: optionalIsoDateTimeSchema,
+      roomId: optionalObjectIdSchema,
+      note: noteSchema
+    });
+    const data = schema.parse(req.body);
+    const appointment = await Appointment.findById(req.params.id);
+
+    if (!appointment) {
+      const err = new Error("Không tìm thấy lịch hẹn.");
+      err.statusCode = 404;
+      throw err;
+    }
+
+    assertAppointmentCanChange(appointment, req.user);
+    await assertNotPastCheckIn(appointment);
+
+    const updated = await rescheduleAppointmentFromSlot({
+      appointment,
+      serviceId: data.serviceId,
+      date: data.date,
+      startAt: data.startAt,
+      roomId: data.roomId
+    });
+
+    updated.status = "confirmed";
+    updated.receptionist = req.user._id;
+    updated.receptionistNote = data.note || "Lễ tân đã xếp lịch khám cho bệnh nhân.";
+    await updated.save();
+    await updated.populate(populateAppointment);
+
+    await Notification.create({
+      user: updated.patient?._id || updated.patient,
+      title: "Lễ tân đã xếp lịch khám",
+      message: `Lịch hẹn ${updated.service?.name || "khám"} của bạn được xếp lúc ${formatClinicDateTime(updated.startAt)}. Vui lòng đến lúc ${formatClinicDateTime(updated.arrivalAt)}. Bác sĩ: ${updated.dentist?.fullName || "-"}. Phòng: ${updated.room?.name || "-"}.`,
+      isRead: false
+    });
+
     res.json({ appointment: updated });
   } catch (error) {
     next(error);
@@ -463,3 +513,15 @@ router.get("/meta/services-for-payment", async (_req, res) => {
 });
 
 export default router;
+
+function formatClinicDateTime(value) {
+  return new Intl.DateTimeFormat("vi-VN", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).format(new Date(value));
+}

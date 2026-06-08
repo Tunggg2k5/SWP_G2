@@ -27,7 +27,7 @@ export default function BookingPage({ embedded = false }) {
   const { services, dentists, rooms, loading: bootstrapLoading } = usePublicBootstrap();
   const [serviceId, setServiceId] = useState("");
   const [date, setDate] = useState(minDate);
-  const [dentistId, setDentistId] = useState("");
+  const [dentistId, setDentistId] = useState("random");
   const [time, setTime] = useState(bookingSlotOptions[0].value);
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -45,13 +45,13 @@ export default function BookingPage({ embedded = false }) {
   }, [services]);
 
   useEffect(() => {
-    setDentistId((current) => current || dentistOptions[0]?._id || "");
+    setDentistId((current) => current || "random");
   }, [dentistOptions]);
 
   function validateBookingInputs() {
     return firstError(
       requireValue(serviceId, "Dịch vụ"),
-      requireValue(dentistId, "Bác sĩ"),
+      dentistId === "random" ? "" : requireValue(dentistId, "Bác sĩ"),
       validateDate(date),
       requireValue(time, "Giờ khám"),
       validateNote(note)
@@ -77,8 +77,9 @@ export default function BookingPage({ embedded = false }) {
       return;
     }
 
-    const room = rooms.find((item) => item.assignedDentist?._id === dentistId) || rooms.find((item) => item.assignedDentist);
-    if (!room) {
+    const wantsRandomDentist = dentistId === "random";
+    const room = wantsRandomDentist ? null : rooms.find((item) => item.assignedDentist?._id === dentistId);
+    if (!wantsRandomDentist && !room) {
       setError("Chưa có phòng khám được gán bác sĩ. Vui lòng liên hệ lễ tân.");
       return;
     }
@@ -95,7 +96,8 @@ export default function BookingPage({ embedded = false }) {
         serviceId,
         date,
         startAt: toClinicIso(date, time),
-        roomId: room._id,
+        roomId: room?._id,
+        dentistPreference: wantsRandomDentist ? "random" : "selected",
         note
       });
       setMessage("Đã gửi yêu cầu đặt lịch. Lễ tân sẽ tiếp nhận và cập nhật trạng thái cho bạn.");
@@ -147,6 +149,7 @@ export default function BookingPage({ embedded = false }) {
           <label className="field">
             <span>Bác sĩ</span>
             <select value={dentistId} onChange={(e) => setDentistId(e.target.value)} disabled={bootstrapLoading} required>
+              <option value="random">Bác sĩ ngẫu nhiên</option>
               {dentistOptions.map((dentist) => (
                 <option value={dentist._id} key={dentist._id}>
                   {dentist.fullName}{dentist.specialty ? ` - ${dentist.specialty}` : ""}

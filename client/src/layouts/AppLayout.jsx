@@ -1,12 +1,16 @@
 import {
+  BarChart3,
   Bell,
   CalendarDays,
   CalendarPlus,
   Camera,
   ChevronRight,
   ClipboardCheck,
+  ClipboardPenLine,
   ClipboardList,
   DoorOpen,
+  Download,
+  FileText,
   Home,
   Info,
   LockKeyhole,
@@ -16,10 +20,12 @@ import {
   Save,
   Search,
   Settings,
+  Settings2,
   ShieldCheck,
+  Star,
   Stethoscope,
   UserPen,
-  UserRound,
+  UsersRound,
   X
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -27,7 +33,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-do
 import Feedback from "../components/Feedback.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api, getErrorMessage } from "../services/api.js";
-import { canUsePublicLookup, roleLabels } from "../utils/roles.js";
+import { canUsePublicLookup, isClinicalRole, roleLabels } from "../utils/roles.js";
 import { firstError, validateName, validatePassword, validatePhone } from "../utils/validation.js";
 
 const receptionistTabs = [
@@ -37,6 +43,31 @@ const receptionistTabs = [
   { id: "booking", label: "Đặt lịch hộ", icon: CalendarPlus },
   { id: "accounts", label: "Tài khoản", icon: LockKeyhole },
   { id: "consultations", label: "Tư vấn", icon: PhoneCall }
+];
+
+const adminTabs = [
+  { id: "overview", label: "Thống kê", icon: BarChart3 },
+  { id: "users", label: "Tài khoản", icon: UsersRound },
+  { id: "services", label: "Dịch vụ", icon: Settings2 },
+  { id: "rooms", label: "Phòng khám", icon: DoorOpen },
+  { id: "workingHours", label: "Giờ làm", icon: CalendarDays },
+  { id: "schedules", label: "Lịch nhân sự", icon: CalendarDays },
+  { id: "reports", label: "Báo cáo", icon: Download },
+  { id: "reviews", label: "Đánh giá", icon: Star }
+];
+
+const dentistTabs = [
+  { id: "schedule", label: "Lịch khám", icon: Stethoscope },
+  { id: "treatment", label: "Kế hoạch điều trị", icon: ClipboardPenLine },
+  { id: "followUp", label: "Tái khám", icon: CalendarPlus },
+  { id: "records", label: "Lịch sử điều trị", icon: FileText }
+];
+
+const nurseTabs = [
+  { id: "schedule", label: "Lịch khám", icon: Stethoscope },
+  { id: "treatment", label: "Cập nhật điều trị", icon: ClipboardPenLine },
+  { id: "rooms", label: "Phòng khám", icon: DoorOpen },
+  { id: "records", label: "Lịch sử điều trị", icon: FileText }
 ];
 
 const genderOptions = [
@@ -56,6 +87,9 @@ function navForRole(role) {
     ];
   }
   if (role === "receptionist") return receptionistTabs.map((item) => ({ ...item, to: `/dashboard?tab=${item.id}`, isTab: true }));
+  if (role === "admin") return adminTabs.map((item) => ({ ...item, to: `/dashboard?tab=${item.id}`, isTab: true }));
+  if (role === "dentist") return dentistTabs.map((item) => ({ ...item, to: `/dashboard?tab=${item.id}`, isTab: true }));
+  if (role === "nurse") return nurseTabs.map((item) => ({ ...item, to: `/dashboard?tab=${item.id}`, isTab: true }));
 
   const base = [];
   if (canUsePublicLookup(role)) {
@@ -64,11 +98,9 @@ function navForRole(role) {
 
   if (!role) return base;
 
-  const dashboardIcon = role === "admin" ? ShieldCheck : role === "patient" ? UserRound : Stethoscope;
   return [
     ...base,
-    { to: "/profile", label: "Hồ sơ", icon: UserRound },
-    { to: "/dashboard", label: "Dashboard", icon: dashboardIcon }
+    { to: "/dashboard", label: "Tổng quan", icon: ShieldCheck }
   ];
 }
 
@@ -87,7 +119,8 @@ export default function AppLayout() {
   const [feedback, setFeedback] = useState({ message: "", error: "" });
   const fileInputRef = useRef(null);
 
-  const activeTab = new URLSearchParams(location.search).get("tab") || "appointments";
+  const defaultTab = user?.role === "admin" ? "overview" : isClinicalRole(user?.role) ? "schedule" : "appointments";
+  const activeTab = new URLSearchParams(location.search).get("tab") || defaultTab;
   const unreadCount = notifications.filter((item) => !item.isRead).length;
   const userInitial = useMemo(() => user?.fullName?.trim()?.[0]?.toUpperCase() || "D", [user?.fullName]);
 

@@ -1,8 +1,8 @@
-import { BarChart3, CalendarDays, DoorOpen, Download, KeyRound, Settings2, ShieldCheck, UsersRound } from "lucide-react";
+import { BarChart3, CalendarDays, DoorOpen, Download, KeyRound, Settings2, ShieldCheck, Star, UsersRound } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import EmptyState from "../components/EmptyState.jsx";
 import Feedback from "../components/Feedback.jsx";
-import FeatureTabs from "../components/FeatureTabs.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
 import { api, getErrorMessage } from "../services/api.js";
 import { formatDateTime, formatMoney, todayInput } from "../utils/format.js";
@@ -16,7 +16,8 @@ const adminFeatures = [
   { id: "rooms", label: "Phòng khám", icon: DoorOpen },
   { id: "workingHours", label: "Giờ làm", icon: CalendarDays },
   { id: "schedules", label: "Lịch nhân sự", icon: CalendarDays },
-  { id: "reports", label: "Báo cáo", icon: Download }
+  { id: "reports", label: "Báo cáo", icon: Download },
+  { id: "reviews", label: "Đánh giá", icon: Star }
 ];
 
 const staffRoles = ["dentist", "nurse", "receptionist"];
@@ -35,6 +36,7 @@ const clinicSessions = [
 ];
 
 export default function AdminDashboard() {
+  const location = useLocation();
   const [activeFeature, setActiveFeature] = useState("overview");
   const [stats, setStats] = useState(null);
   const [roleHierarchy, setRoleHierarchy] = useState([]);
@@ -47,6 +49,7 @@ export default function AdminDashboard() {
   const [schedulesLoaded, setSchedulesLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [report, setReport] = useState(null);
+  const [reviews, setReviews] = useState([]);
   const [serviceForm, setServiceForm] = useState({
     name: "",
     description: "",
@@ -90,6 +93,7 @@ export default function AdminDashboard() {
       setRoleHierarchy(res.data.roleHierarchy);
       setWorkingHours(res.data.workingHours);
       setTimeSlots(res.data.timeSlots);
+      setReviews(res.data.reviews || []);
       setScheduleForm((current) => ({
         ...current,
         userId: current.userId || res.data.users.find((item) => ["dentist", "nurse", "receptionist"].includes(item.role))?._id || "",
@@ -107,6 +111,13 @@ export default function AdminDashboard() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    const tab = new URLSearchParams(location.search).get("tab");
+    if (adminFeatures.some((item) => item.id === tab)) {
+      setActiveFeature(tab);
+    }
+  }, [location.search]);
 
   useEffect(() => {
     if (activeFeature === "schedules" && !schedulesLoaded) {
@@ -312,7 +323,6 @@ export default function AdminDashboard() {
   return (
     <div className="page-grid">
       <Feedback error={error} message={message} />
-      <FeatureTabs items={adminFeatures} active={activeFeature} onChange={setActiveFeature} />
 
       {activeFeature === "overview" && (
         <>
@@ -825,6 +835,35 @@ export default function AdminDashboard() {
             </div>
           </section>
         </>
+      )}
+
+      {activeFeature === "reviews" && (
+        <section className="panel">
+          <div className="section-title">
+            <Star size={20} />
+            <h2>Đánh giá & xếp hạng</h2>
+          </div>
+          {loading ? (
+            <EmptyState title="Đang tải đánh giá" text="Hệ thống đang lấy dữ liệu mới nhất." />
+          ) : reviews.length ? (
+            <div className="review-admin-grid">
+              {reviews.map((review) => (
+                <article className="patient-dark-review-card admin-review-card" key={review._id}>
+                  <div className="review-stars">
+                    {Array.from({ length: Number(review.rating || review.ratingService || 5) }, (_, index) => <Star fill="currentColor" size={15} key={index} />)}
+                  </div>
+                  <p>{review.comment || "Không có nhận xét chi tiết."}</p>
+                  <div>
+                    <strong>{review.patient?.fullName || "Bệnh nhân"}</strong>
+                    <span>{review.service?.name || "Dịch vụ"} / {review.dentist?.fullName || "Bác sĩ"}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <EmptyState title="Chưa có đánh giá" text="Khi bệnh nhân gửi đánh giá, dữ liệu sẽ hiển thị tại đây." />
+          )}
+        </section>
       )}
     </div>
   );

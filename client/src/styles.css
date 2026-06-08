@@ -1563,6 +1563,68 @@ textarea {
   justify-content: flex-start;
 }
 
+.clinical-schedule-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.clinical-schedule-summary,
+.clinical-selected-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  padding: 10px 12px;
+}
+
+.clinical-schedule-summary strong {
+  font-size: 1.35rem;
+}
+
+.schedule-index-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+}
+
+.clinical-selected-card {
+  justify-content: space-between;
+  width: 100%;
+  background: #f8fbff;
+}
+
+.clinical-selected-card span {
+  color: var(--muted);
+}
+
+.clinical-selected-card.wide {
+  grid-column: 1 / -1;
+}
+
+.clinical-followup-panel .form-grid .button {
+  align-self: end;
+}
+
+.review-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.admin-review-card {
+  min-height: 0;
+}
+
 .locked-note {
   display: inline-flex;
   width: fit-content;

@@ -232,7 +232,7 @@ async function selectAvailableNurse(startAt, endAt, date) {
   });
 }
 
-export async function createAppointmentFromSlot({ requester, patientId, serviceId, date, startAt, roomId, channel, note }) {
+export async function createAppointmentFromSlot({ requester, patientId, serviceId, date, startAt, roomId, channel, note, dentistPreference = "selected" }) {
   const patient = await User.findById(patientId).lean();
   if (!patient || patient.role !== "patient") {
     throw httpError("Không tìm thấy tài khoản bệnh nhân.", 404);
@@ -245,11 +245,7 @@ export async function createAppointmentFromSlot({ requester, patientId, serviceI
     getPatientAppointmentsForDate(patient._id, date)
   ]);
   const selected = requestedStart
-    ? slots.find(
-        (slot) =>
-          slot.startAt.getTime() === requestedStart.getTime() &&
-          (!roomId || sameId(slot.room._id, roomId))
-      )
+    ? selectRequestedSlot(slots, requestedStart, roomId, dentistPreference)
     : slots.find((slot) => !hasDirectTimeConflict(patientAppointments, slot.startAt, slot.endAt));
 
   if (!selected) {
@@ -292,6 +288,7 @@ export async function createAppointmentFromSlot({ requester, patientId, serviceI
     appointmentSlot: appointmentSlot._id,
     channel,
     bookingType: channel,
+    dentistPreference,
     startAt: selected.startAt,
     endAt: selected.endAt,
     arrivalAt: selected.arrivalAt,
@@ -299,6 +296,19 @@ export async function createAppointmentFromSlot({ requester, patientId, serviceI
     paymentStatus: service.requiresPrepayment ? "pending_checkin" : "not_required",
     patientNote: note
   });
+}
+
+function selectRequestedSlot(slots, requestedStart, roomId, dentistPreference) {
+  const matches = slots.filter(
+    (slot) =>
+      slot.startAt.getTime() === requestedStart.getTime() &&
+      (!roomId || sameId(slot.room._id, roomId))
+  );
+
+  if (!matches.length) return undefined;
+  if (dentistPreference !== "random") return matches[0];
+
+  return matches[Math.floor(Math.random() * matches.length)];
 }
 
 export async function rescheduleAppointmentFromSlot({ appointment, serviceId, date, startAt, roomId }) {

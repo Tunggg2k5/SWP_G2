@@ -12,6 +12,7 @@ const appointmentSchema = new mongoose.Schema(
     appointmentSlot: { type: mongoose.Schema.Types.ObjectId, ref: "AppointmentSlot" },
     channel: { type: String, enum: ["online", "offline"], default: "online" },
     bookingType: { type: String, enum: ["online", "offline"], default: "online" },
+    dentistPreference: { type: String, enum: ["selected", "random"], default: "selected" },
     bookingDate: { type: Date, default: Date.now },
     startAt: { type: Date, required: true },
     endAt: { type: Date, required: true },
