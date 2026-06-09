@@ -80,10 +80,10 @@ const genderOptions = [
 function navForRole(role) {
   if (role === "patient") {
     return [
-      { to: "/dashboard#home", label: "Trang chủ", icon: Home },
-      { to: "/dashboard#services", label: "Dịch vụ", icon: Search },
-      { to: "/dashboard#about", label: "Giới thiệu", icon: Info },
-      { to: "/dashboard#contact", label: "Liên hệ", icon: Mail }
+      { id: "home", to: "/dashboard#home", hash: "#home", label: "Trang chủ", icon: Home, isPatientAnchor: true },
+      { id: "services", to: "/dashboard#services", hash: "#services", label: "Dịch vụ", icon: Search, isPatientAnchor: true },
+      { id: "about", to: "/dashboard#about", hash: "#about", label: "Giới thiệu", icon: Info, isPatientAnchor: true },
+      { id: "contact", to: "/dashboard#contact", hash: "#contact", label: "Liên hệ", icon: Mail, isPatientAnchor: true }
     ];
   }
   if (role === "receptionist") return receptionistTabs.map((item) => ({ ...item, to: `/dashboard?tab=${item.id}`, isTab: true }));
@@ -118,6 +118,10 @@ export default function AppLayout() {
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "" });
   const [feedback, setFeedback] = useState({ message: "", error: "" });
   const fileInputRef = useRef(null);
+  const notificationButtonRef = useRef(null);
+  const notificationPopoverRef = useRef(null);
+  const accountButtonRef = useRef(null);
+  const accountPopoverRef = useRef(null);
 
   const defaultTab = user?.role === "admin" ? "overview" : isClinicalRole(user?.role) ? "schedule" : "appointments";
   const activeTab = new URLSearchParams(location.search).get("tab") || defaultTab;
@@ -135,6 +139,36 @@ export default function AppLayout() {
     });
     loadNotifications();
   }, [user?._id, user?.fullName, user?.phone, user?.gender, user?.address, user?.bio]);
+
+  useEffect(() => {
+    setShowNotifications(false);
+    setShowAccountMenu(false);
+    setProfileOpen(false);
+    setPasswordOpen(false);
+  }, [user?._id, location.pathname]);
+
+  useEffect(() => {
+    function closeFloatingMenus(event) {
+      const target = event.target;
+      if (
+        showNotifications &&
+        !notificationPopoverRef.current?.contains(target) &&
+        !notificationButtonRef.current?.contains(target)
+      ) {
+        setShowNotifications(false);
+      }
+      if (
+        showAccountMenu &&
+        !accountPopoverRef.current?.contains(target) &&
+        !accountButtonRef.current?.contains(target)
+      ) {
+        setShowAccountMenu(false);
+      }
+    }
+
+    document.addEventListener("mousedown", closeFloatingMenus);
+    return () => document.removeEventListener("mousedown", closeFloatingMenus);
+  }, [showAccountMenu, showNotifications]);
 
   if (location.pathname === "/" || location.pathname === "/dat-lich-hen") {
     return <Outlet />;
@@ -237,8 +271,10 @@ export default function AppLayout() {
         <nav className="top-nav-list" aria-label="Điều hướng chính">
           {items.map((item) => {
             const Icon = item.icon;
-            const active = item.isTab ? activeTab === item.id && location.pathname === "/dashboard" : undefined;
-            return item.isTab ? (
+            const active = item.isTab
+              ? activeTab === item.id && location.pathname === "/dashboard"
+              : item.isPatientAnchor && location.pathname === "/dashboard" && (location.hash || "#home") === item.hash;
+            return item.isTab || item.isPatientAnchor ? (
               <Link key={item.id} to={item.to} className={`top-nav-item ${active ? "active" : ""}`}>
                 <Icon size={17} />
                 <span>{item.label}</span>
@@ -255,11 +291,27 @@ export default function AppLayout() {
         <div className="top-user-box">
           {user ? (
             <>
-              <button className="top-notification-button" onClick={() => setShowNotifications((value) => !value)} title="Thông báo">
+              <button
+                className="top-notification-button"
+                onClick={() => {
+                  setShowNotifications((value) => !value);
+                  setShowAccountMenu(false);
+                }}
+                ref={notificationButtonRef}
+                title="Thông báo"
+              >
                 <Bell size={18} />
                 {unreadCount > 0 && <span>{unreadCount}</span>}
               </button>
-              <button className="top-avatar-button" onClick={() => setShowAccountMenu((value) => !value)} title="Tài khoản">
+              <button
+                className="top-avatar-button"
+                onClick={() => {
+                  setShowAccountMenu((value) => !value);
+                  setShowNotifications(false);
+                }}
+                ref={accountButtonRef}
+                title="Tài khoản"
+              >
                 {user.avatarUrl ? <img src={user.avatarUrl} alt={user.fullName || "Avatar"} /> : <span>{userInitial}</span>}
               </button>
             </>
@@ -267,7 +319,7 @@ export default function AppLayout() {
         </div>
 
         {showNotifications && (
-          <div className="notification-popover">
+          <div className="notification-popover" ref={notificationPopoverRef}>
             <div className="notification-popover-head">
               <div>
                 <p className="eyebrow">Hoạt động mới</p>
@@ -301,7 +353,7 @@ export default function AppLayout() {
         )}
 
         {showAccountMenu && user && (
-          <div className="account-popover">
+          <div className="account-popover" ref={accountPopoverRef}>
             <div className="account-profile-card">
               <span className="account-avatar">
                 {user.avatarUrl ? <img src={user.avatarUrl} alt={user.fullName || "Avatar"} /> : userInitial}
@@ -338,7 +390,7 @@ export default function AppLayout() {
       </main>
 
       {profileOpen && (
-        <div className="modal-backdrop" role="dialog" aria-modal="true">
+        <div className="modal-backdrop" role="dialog" aria-modal="true" onMouseDown={(event) => event.currentTarget === event.target && setProfileOpen(false)}>
           <form className="account-modal panel" onSubmit={saveProfile}>
             <div className="section-title">
               <Settings size={20} />
@@ -386,7 +438,7 @@ export default function AppLayout() {
       )}
 
       {passwordOpen && (
-        <div className="modal-backdrop" role="dialog" aria-modal="true">
+        <div className="modal-backdrop" role="dialog" aria-modal="true" onMouseDown={(event) => event.currentTarget === event.target && setPasswordOpen(false)}>
           <form className="account-modal panel" onSubmit={changePassword}>
             <div className="section-title">
               <LockKeyhole size={20} />

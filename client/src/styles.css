@@ -2473,14 +2473,16 @@ th {
   right: clamp(14px, 3vw, 34px);
   z-index: 70;
   width: min(420px, calc(100vw - 28px));
-  border: 1px solid var(--line);
+  border: 1px solid #c9d9ef;
   border-radius: var(--radius);
-  background: white;
-  box-shadow: 0 24px 70px rgba(12, 38, 50, 0.22);
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(7, 40, 95, 0.18);
 }
 
 .notification-popover {
-  border-color: #f3adc9;
+  overflow: hidden;
+  border-color: #bfd3f6;
+  background: linear-gradient(180deg, #ffffff 0%, #f4f8ff 100%);
 }
 
 .notification-popover-head {
@@ -2488,11 +2490,24 @@ th {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 16px 10px;
+  padding: 18px 18px 12px;
+  border-bottom: 1px solid #d8e5f7;
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+  color: #ffffff;
 }
 
 .notification-popover-head .eyebrow {
-  color: #d12772;
+  color: #b8d4ff;
+}
+
+.notification-popover-head strong {
+  color: #ffffff;
+}
+
+.notification-popover-head .icon-button {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
 }
 
 .notification-popover-list {
@@ -2500,7 +2515,7 @@ th {
   gap: 10px;
   max-height: min(520px, calc(100vh - 150px));
   overflow-y: auto;
-  padding: 0 16px 16px;
+  padding: 14px 16px 16px;
 }
 
 .notification-card {
@@ -2508,16 +2523,24 @@ th {
   grid-template-columns: 44px minmax(0, 1fr);
   gap: 12px;
   width: 100%;
-  border: 1px solid #f3b7cf;
+  border: 1px solid #d6e4f7;
   border-radius: var(--radius);
   padding: 12px;
-  background: #fff8fb;
+  background: #ffffff;
   text-align: left;
+  box-shadow: 0 8px 22px rgba(7, 40, 95, 0.06);
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.notification-card:hover {
+  border-color: #9fbee9;
+  box-shadow: 0 14px 30px rgba(7, 40, 95, 0.11);
+  transform: translateY(-1px);
 }
 
 .notification-card.read {
-  background: #fff;
-  opacity: 0.74;
+  background: #f6f9fe;
+  opacity: 0.82;
 }
 
 .notification-avatar {
@@ -2526,8 +2549,8 @@ th {
   width: 42px;
   height: 42px;
   border-radius: var(--radius);
-  background: var(--primary-soft);
-  color: var(--primary-dark);
+  background: linear-gradient(135deg, #e7f0ff, #d8e8ff);
+  color: var(--primary);
   font-weight: 900;
 }
 
@@ -2541,14 +2564,14 @@ th {
 }
 
 .notification-card em {
-  color: #a01855;
+  color: var(--primary);
   font-style: normal;
   font-weight: 850;
 }
 
 .notification-empty {
   padding: 24px;
-  color: var(--muted);
+  color: #536777;
   text-align: center;
 }
 

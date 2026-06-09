@@ -8,6 +8,7 @@ import {
   X
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import EmptyState from "../components/EmptyState.jsx";
 import Feedback from "../components/Feedback.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
@@ -26,6 +27,7 @@ const patientNav = [
 const lockedPatientStatuses = new Set(["cancelled", "rejected", "completed", "no_show"]);
 
 export default function PatientDashboard() {
+  const location = useLocation();
   const [activeFeature, setActiveFeature] = useState("home");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [appointments, setAppointments] = useState([]);
@@ -64,6 +66,17 @@ export default function PatientDashboard() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    const hash = location.hash || "#home";
+    if (["#home", "#services", "#about", "#contact"].includes(hash)) {
+      setActiveFeature("home");
+      window.requestAnimationFrame(() => {
+        const target = document.querySelector(hash);
+        target?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  }, [location.hash]);
 
   function updateReviewForm(appointmentId, values) {
     setReviewForms((current) => ({
