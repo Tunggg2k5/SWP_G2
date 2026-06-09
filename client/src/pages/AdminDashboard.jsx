@@ -4,7 +4,7 @@ import { useLocation } from "react-router-dom";
 import EmptyState from "../components/EmptyState.jsx";
 import Feedback from "../components/Feedback.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
-import { api, getErrorMessage } from "../services/api.js";
+import { api, getErrorMessage } from "../utils/api.js";
 import { formatDateTime, formatMoney, todayInput } from "../utils/format.js";
 import { formatInheritanceChain, roleLabels } from "../utils/roles.js";
 import { firstError, requireValue, validateDate, validateEmail, validateName, validateNote, validatePhone } from "../utils/validation.js";

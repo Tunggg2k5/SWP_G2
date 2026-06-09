@@ -10,7 +10,7 @@ import {
   UserRound
 } from "lucide-react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext.jsx";
+import { useAuth } from "../redux/AuthContext.jsx";
 import { canUsePatientBooking, canUsePublicLookup, formatInheritanceChain, roleLabels } from "../utils/roles.js";
 
 function navForRole(role) {

@@ -1,8 +1,8 @@
 import { Home, LockKeyhole, Phone, UserRound } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext.jsx";
-import { api, getErrorMessage } from "../services/api.js";
+import { useAuth } from "../redux/AuthContext.jsx";
+import { api, getErrorMessage } from "../utils/api.js";
 import { firstError, requireValue, validatePassword, validatePhone } from "../utils/validation.js";
 
 const genderOptions = [

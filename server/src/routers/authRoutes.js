@@ -184,6 +184,12 @@ router.get("/notifications", requireAuth, async (req, res) => {
   res.json({ notifications });
 });
 
+router.patch("/notifications/read-all", requireAuth, async (req, res) => {
+  await Notification.updateMany({ user: req.user._id, isRead: false }, { isRead: true });
+  const notifications = await Notification.find({ user: req.user._id }).sort({ createdAt: -1 }).limit(50);
+  res.json({ notifications });
+});
+
 router.patch("/notifications/:id/read", requireAuth, async (req, res, next) => {
   try {
     const notification = await Notification.findOneAndUpdate(

@@ -5569,3 +5569,568 @@ th {
     flex-direction: column;
   }
 }
+
+/* Guest landing redesign based on the provided Stitch reference. */
+.smile-guest-page {
+  --smile-bg: #fffaf6;
+  --smile-bg-soft: #fff3eb;
+  --smile-card: #ffffff;
+  --smile-line: rgba(24, 33, 55, 0.12);
+  --smile-text: #182137;
+  --smile-muted: #647083;
+  --smile-teal: #101d3c;
+  --smile-teal-dark: #0a1430;
+  --smile-green: #fff0e6;
+  --smile-gold: #f15a12;
+  --smile-orange: #f15a12;
+  --smile-orange-dark: #d94308;
+  --smile-orange-soft: #fff0e7;
+  color: var(--smile-text);
+  background: #ffffff;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.smile-header {
+  min-height: 70px;
+  padding: 0 clamp(28px, 7vw, 118px);
+  border-bottom: 1px solid rgba(24, 33, 55, 0.08);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 10px 30px rgba(24, 33, 55, 0.08);
+}
+
+.smile-guest-page .smile-brand {
+  color: #a64b16;
+  font-size: 1.55rem;
+  font-weight: 900;
+}
+
+.smile-nav {
+  gap: clamp(22px, 3vw, 42px);
+}
+
+.smile-nav a {
+  position: relative;
+  color: #1f2937;
+  font-size: 0.96rem;
+  font-weight: 800;
+}
+
+.smile-nav a::after {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -24px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--smile-orange);
+  content: "";
+  opacity: 0;
+  transform: scaleX(0.3);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.smile-nav a:hover::after,
+.smile-nav a:focus-visible::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.smile-phone {
+  color: #1f2937;
+}
+
+.smile-guest-page .smile-primary-link {
+  min-height: 46px;
+  border-radius: 8px;
+  background: var(--smile-teal);
+  color: #ffffff;
+  box-shadow: 0 16px 34px rgba(16, 29, 60, 0.2);
+}
+
+.smile-guest-page .smile-primary-link:hover,
+.smile-submit:hover {
+  background: var(--smile-teal-dark);
+  color: #ffffff;
+}
+
+.smile-guest-page .smile-secondary-link {
+  min-height: 46px;
+  border-radius: 8px;
+  border-color: rgba(24, 33, 55, 0.14);
+  background: #ffffff;
+  color: var(--smile-text);
+  box-shadow: 0 12px 24px rgba(24, 33, 55, 0.08);
+}
+
+.smile-hero {
+  position: relative;
+  grid-template-columns: minmax(360px, 0.86fr) minmax(500px, 1.14fr);
+  min-height: 600px;
+  padding: 76px clamp(28px, 7vw, 118px) 112px;
+  overflow: visible;
+  background:
+    linear-gradient(104deg, rgba(241, 90, 18, 0.96) 0 48%, rgba(255, 255, 255, 0.96) 48% 100%),
+    url("/clinic-hero.png") center right / cover no-repeat;
+}
+
+.smile-hero-copy {
+  gap: 18px;
+  max-width: 620px;
+}
+
+.smile-pill,
+.smile-pill.compact,
+.smile-pill.gold {
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  background: rgba(16, 29, 60, 0.16);
+  color: #ffffff;
+  font-size: 0.9rem;
+}
+
+.smile-section .smile-pill.compact,
+.smile-section .smile-pill.gold {
+  border-color: rgba(241, 90, 18, 0.18);
+  background: var(--smile-orange-soft);
+  color: var(--smile-orange-dark);
+}
+
+.smile-testimonials .smile-pill.compact {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+.smile-hero-copy h1 {
+  margin: 10px 0 0;
+  color: #ffffff;
+  font-size: clamp(2.5rem, 4.2vw, 4.7rem);
+  line-height: 1.04;
+}
+
+.smile-hero-copy p {
+  max-width: 560px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+}
+
+.smile-hero-actions {
+  margin-top: 8px;
+}
+
+.smile-hero-actions .hero-action {
+  min-width: 250px;
+}
+
+.smile-hero-visual {
+  min-height: 430px;
+}
+
+.smile-hero-image {
+  position: relative;
+  height: 100%;
+  min-height: 430px;
+  overflow: hidden;
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+    url("/clinic-hero.png") center right / cover no-repeat;
+  box-shadow: 0 28px 70px rgba(16, 29, 60, 0.2);
+}
+
+.smile-hero-image span {
+  position: absolute;
+  left: 24px;
+  bottom: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  border-radius: 8px;
+  padding: 9px 14px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--smile-text);
+  font-weight: 900;
+  box-shadow: 0 14px 30px rgba(16, 29, 60, 0.16);
+}
+
+.smile-stats {
+  position: absolute;
+  left: clamp(28px, 7vw, 118px);
+  right: clamp(28px, 7vw, 118px);
+  bottom: -42px;
+  z-index: 3;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #f15a12, #ff7a1f);
+  box-shadow: 0 22px 50px rgba(190, 65, 7, 0.24);
+}
+
+.smile-stats span {
+  min-height: 88px;
+  border: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 0;
+  padding: 18px 14px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 760;
+}
+
+.smile-stats span:last-child {
+  border-right: 0;
+}
+
+.smile-stats strong {
+  color: #ffffff;
+  font-size: 2.25rem;
+}
+
+.smile-section {
+  padding: 92px clamp(28px, 7vw, 118px);
+  background: #ffffff;
+}
+
+.smile-services {
+  padding-top: 128px;
+}
+
+.smile-section-heading {
+  max-width: 860px;
+}
+
+.smile-section-heading h2,
+.smile-about-copy h2 {
+  color: var(--smile-text);
+  font-size: clamp(2rem, 3.2vw, 3.5rem);
+}
+
+.smile-section-heading p,
+.smile-about-copy p {
+  color: var(--smile-muted);
+}
+
+.smile-service-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: auto;
+  gap: 22px;
+}
+
+.smile-service-card,
+.smile-service-card.large,
+.smile-service-card.tone-cosmetic,
+.smile-service-card.tone-ortho,
+.smile-service-card.tone-general {
+  align-content: start;
+  justify-items: center;
+  min-height: 230px;
+  border-color: rgba(241, 90, 18, 0.18);
+  padding: 26px 20px;
+  background: #ffffff;
+  text-align: center;
+  box-shadow: 0 18px 45px rgba(24, 33, 55, 0.1);
+}
+
+.smile-service-card:hover {
+  border-color: rgba(241, 90, 18, 0.45);
+  transform: translateY(-3px);
+}
+
+.smile-service-card:nth-child(3) {
+  background: linear-gradient(180deg, #fff7f1, #ffffff);
+}
+
+.smile-icon-bubble {
+  width: 62px;
+  height: 62px;
+  background: linear-gradient(135deg, var(--smile-orange), #ff7a1f);
+  color: #ffffff;
+  box-shadow: 0 14px 26px rgba(241, 90, 18, 0.24);
+}
+
+.smile-service-card h3 {
+  font-size: 1.12rem;
+}
+
+.smile-service-card p {
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+
+.smile-service-card small {
+  margin-top: auto;
+  color: var(--smile-text);
+  font-size: 0.98rem;
+}
+
+.smile-about {
+  grid-template-columns: minmax(0, 0.9fr) minmax(360px, 0.86fr);
+  background: var(--smile-bg-soft);
+}
+
+.smile-feature-list span,
+.smile-clinic-panel,
+.smile-clinic-panel article {
+  border-color: rgba(241, 90, 18, 0.16);
+  background: #ffffff;
+}
+
+.smile-feature-list svg,
+.smile-clinic-panel svg {
+  color: var(--smile-orange);
+}
+
+.smile-clinic-panel {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 245, 238, 0.9)),
+    url("/clinic-hero.png") center right / cover no-repeat;
+  box-shadow: 0 22px 56px rgba(24, 33, 55, 0.12);
+}
+
+.smile-dentists {
+  background: #ffffff;
+}
+
+.smile-dentist-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.smile-dentist-card {
+  justify-items: center;
+  min-height: 250px;
+  padding: 28px;
+  text-align: center;
+}
+
+.smile-dentist-card > span,
+.smile-testimonial-grid article > div:last-child span {
+  background: linear-gradient(135deg, #eef1f5, #ffffff);
+  color: var(--smile-text);
+  box-shadow: inset 0 0 0 1px rgba(24, 33, 55, 0.12);
+}
+
+.smile-dentist-card strong {
+  color: var(--smile-orange-dark);
+}
+
+.smile-faq {
+  background: #ffffff;
+}
+
+.smile-faq-photo {
+  background:
+    linear-gradient(180deg, rgba(16, 29, 60, 0.06), rgba(16, 29, 60, 0.02)),
+    url("/clinic-hero.png") center right / cover no-repeat;
+}
+
+.smile-faq-list article {
+  border-color: rgba(24, 33, 55, 0.1);
+}
+
+.smile-faq-list button strong,
+.smile-faq-list article.open button strong {
+  background: var(--smile-orange);
+  color: #ffffff;
+}
+
+.smile-testimonials {
+  background: linear-gradient(135deg, #ef520b 0%, #ff7a1f 100%);
+}
+
+.smile-testimonials .smile-section-heading h2 {
+  color: #ffffff;
+}
+
+.smile-testimonial-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.smile-testimonial-grid article {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: #ffffff;
+  box-shadow: 0 22px 46px rgba(111, 46, 11, 0.18);
+}
+
+.smile-stars {
+  color: #f6b400;
+}
+
+.smile-contact {
+  background:
+    linear-gradient(180deg, #ffffff 0 36%, rgba(241, 90, 18, 0.96) 36% 100%);
+}
+
+.smile-consult-form {
+  max-width: 1040px;
+  border: 0;
+  border-radius: 8px;
+  padding: 38px;
+  background: linear-gradient(135deg, #f15a12, #ff7a1f);
+  box-shadow: 0 28px 62px rgba(160, 62, 9, 0.24);
+}
+
+.smile-consult-form label {
+  color: #ffffff;
+}
+
+.smile-segmented span {
+  border-color: rgba(255, 255, 255, 0.34);
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.smile-segmented input:checked + span {
+  border-color: #ffffff;
+  background: #ffffff;
+  color: var(--smile-orange-dark);
+}
+
+.smile-consult-form input,
+.smile-consult-form select,
+.smile-consult-form textarea {
+  border-color: rgba(255, 255, 255, 0.42);
+  background: #ffffff;
+  color: var(--smile-text);
+}
+
+.smile-consult-form small {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.smile-submit {
+  border-radius: 8px;
+  background: var(--smile-teal);
+}
+
+.smile-footer {
+  background: linear-gradient(135deg, #f15a12, #ff7a1f);
+  color: #ffffff;
+}
+
+.smile-footer-brand,
+.smile-footer-brand span,
+.smile-footer h3,
+.smile-footer p,
+.smile-footer a,
+.smile-footer-bottom {
+  color: #ffffff;
+}
+
+.smile-footer a:hover {
+  color: var(--smile-teal);
+}
+
+.smile-footer-bottom {
+  border-top-color: rgba(255, 255, 255, 0.22);
+}
+
+@media (max-width: 1240px) {
+  .smile-hero {
+    grid-template-columns: 1fr;
+    background: linear-gradient(135deg, #f15a12, #ff7a1f);
+  }
+
+  .smile-hero-visual {
+    min-height: 380px;
+  }
+
+  .smile-service-grid,
+  .smile-testimonial-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .smile-header {
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  .smile-nav a::after {
+    bottom: -8px;
+  }
+
+  .smile-hero {
+    min-height: auto;
+    padding-bottom: 52px;
+  }
+
+  .smile-stats {
+    position: static;
+    grid-column: 1;
+    margin-top: 12px;
+  }
+
+  .smile-services {
+    padding-top: 92px;
+  }
+
+  .smile-about,
+  .smile-faq-layout,
+  .smile-dentist-grid,
+  .smile-footer-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .smile-header {
+    min-height: auto;
+  }
+
+  .smile-brand {
+    font-size: 1.35rem;
+  }
+
+  .smile-header-actions {
+    width: auto;
+  }
+
+  .smile-header-actions .smile-primary-link {
+    flex: 0 0 auto;
+  }
+
+  .smile-hero {
+    padding-top: 34px;
+  }
+
+  .smile-hero-copy,
+  .smile-hero-copy h1,
+  .smile-hero-copy p,
+  .smile-hero-actions {
+    max-width: 100%;
+  }
+
+  .smile-hero-actions .hero-action,
+  .smile-secondary-link {
+    width: 100%;
+  }
+
+  .smile-hero-visual,
+  .smile-hero-image {
+    min-height: 280px;
+  }
+
+  .smile-stats,
+  .smile-service-grid,
+  .smile-testimonial-grid,
+  .smile-consult-form {
+    grid-template-columns: 1fr;
+  }
+
+  .smile-stats span {
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    text-align: center;
+  }
+
+  .smile-stats span:last-child {
+    border-bottom: 0;
+  }
+
+  .smile-consult-form {
+    padding: 22px;
+  }
+}

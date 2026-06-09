@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import AppLayout from "../layouts/AppLayout.jsx";
-import { useAuth } from "../context/AuthContext.jsx";
+import AppLayout from "./AppLayout.jsx";
+import { useAuth } from "../redux/AuthContext.jsx";
 import AdminDashboard from "../pages/AdminDashboard.jsx";
 import AuthPage from "../pages/AuthPage.jsx";
 import BookingPage from "../pages/BookingPage.jsx";

@@ -4,7 +4,6 @@ import Appointment from "../models/Appointment.js";
 import ClinicRoom from "../models/ClinicRoom.js";
 import DentalService from "../models/DentalService.js";
 import Notification from "../models/Notification.js";
-import Prescription from "../models/Prescription.js";
 import RoomStatus from "../models/RoomStatus.js";
 import TreatmentRecord from "../models/TreatmentRecord.js";
 import TreatmentPlan from "../models/TreatmentPlan.js";
@@ -158,8 +157,7 @@ router.put("/appointments/:appointmentId/treatment-record", authorize("dentist",
       treatmentResult: z.string().max(2000).optional(),
       treatmentNote: z.string().max(4000).optional(),
       treatmentPlan: z.string().max(4000).optional(),
-      estimatedCost: z.coerce.number().optional(),
-      prescription: z.string().max(4000).optional()
+      estimatedCost: z.coerce.number().optional()
     });
     const data = schema.parse(req.body);
     const appointment = await Appointment.findById(req.params.appointmentId);
@@ -182,23 +180,20 @@ router.put("/appointments/:appointmentId/treatment-record", authorize("dentist",
       throw err;
     }
 
+    const updateFields = {
+      patient: appointment.patient,
+      dentist: appointment.dentist,
+      nurse: req.user.role === "nurse" ? req.user._id : appointment.nurse,
+      treatmentDate: new Date(),
+      status: "active"
+    };
+    for (const field of ["vitalSigns", "diagnosis", "treatmentResult", "treatmentNote", "treatmentPlan"]) {
+      if (data[field] !== undefined) updateFields[field] = data[field];
+    }
+
     const record = await TreatmentRecord.findOneAndUpdate(
       { appointment: appointment._id },
-      {
-        $set: {
-          patient: appointment.patient,
-          dentist: appointment.dentist,
-          nurse: req.user.role === "nurse" ? req.user._id : appointment.nurse,
-          vitalSigns: data.vitalSigns,
-          diagnosis: data.diagnosis,
-          treatmentResult: data.treatmentResult,
-          treatmentNote: data.treatmentNote,
-          treatmentPlan: data.treatmentPlan,
-          prescription: data.prescription,
-          treatmentDate: new Date(),
-          status: "active"
-        }
-      },
+      { $set: updateFields },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     ).populate([
       { path: "appointment", populate: { path: "service", select: "name" } },
@@ -218,16 +213,6 @@ router.put("/appointments/:appointmentId/treatment-record", authorize("dentist",
         },
         { upsert: true, new: true, setDefaultsOnInsert: true }
       );
-    }
-
-    if (data.prescription) {
-      await Prescription.create({
-        treatmentRecord: record._id,
-        dentist: appointment.dentist,
-        medicineName: "Theo đơn điều trị",
-        instruction: data.prescription,
-        note: data.prescription
-      });
     }
 
     res.json({ record });

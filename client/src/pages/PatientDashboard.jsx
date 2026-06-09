@@ -12,8 +12,8 @@ import { useLocation } from "react-router-dom";
 import EmptyState from "../components/EmptyState.jsx";
 import Feedback from "../components/Feedback.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
-import { usePublicBootstrap } from "../hooks/usePublicBootstrap.js";
-import { api, getErrorMessage } from "../services/api.js";
+import { usePublicBootstrap } from "../utils/usePublicBootstrap.js";
+import { api, getErrorMessage } from "../utils/api.js";
 import { formatDateTime, formatMoney, todayInput } from "../utils/format.js";
 import BookingPage, { bookingSlotOptions, toClinicIso } from "./BookingPage.jsx";
 
@@ -69,7 +69,7 @@ export default function PatientDashboard() {
 
   useEffect(() => {
     const hash = location.hash || "#home";
-    if (["#home", "#services", "#about", "#contact"].includes(hash)) {
+    if (["#home", "#services", "#about"].includes(hash)) {
       setActiveFeature("home");
       window.requestAnimationFrame(() => {
         const target = document.querySelector(hash);
@@ -334,7 +334,7 @@ export default function PatientDashboard() {
                   <div className="record-card" key={record._id}>
                     <strong>{record.appointment?.service?.name}</strong>
                     <p>{record.diagnosis || "Chưa có chẩn đoán"}</p>
-                    <span className="mini">{record.prescription || "Chưa có đơn thuốc"}</span>
+                    <span className="mini">{record.treatmentPlan || record.treatmentResult || "Chưa có kế hoạch điều trị"}</span>
                   </div>
                 ))}
               </div>

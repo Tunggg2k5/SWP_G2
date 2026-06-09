@@ -15,7 +15,6 @@ import {
   Info,
   LockKeyhole,
   LogOut,
-  Mail,
   PhoneCall,
   Save,
   Search,
@@ -31,8 +30,8 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import Feedback from "../components/Feedback.jsx";
-import { useAuth } from "../context/AuthContext.jsx";
-import { api, getErrorMessage } from "../services/api.js";
+import { useAuth } from "../redux/AuthContext.jsx";
+import { api, getErrorMessage } from "../utils/api.js";
 import { canUsePublicLookup, isClinicalRole, roleLabels } from "../utils/roles.js";
 import { firstError, validateName, validatePassword, validatePhone } from "../utils/validation.js";
 
@@ -82,8 +81,7 @@ function navForRole(role) {
     return [
       { id: "home", to: "/dashboard#home", hash: "#home", label: "Trang chủ", icon: Home, isPatientAnchor: true },
       { id: "services", to: "/dashboard#services", hash: "#services", label: "Dịch vụ", icon: Search, isPatientAnchor: true },
-      { id: "about", to: "/dashboard#about", hash: "#about", label: "Giới thiệu", icon: Info, isPatientAnchor: true },
-      { id: "contact", to: "/dashboard#contact", hash: "#contact", label: "Liên hệ", icon: Mail, isPatientAnchor: true }
+      { id: "about", to: "/dashboard#about", hash: "#about", label: "Giới thiệu", icon: Info, isPatientAnchor: true }
     ];
   }
   if (role === "receptionist") return receptionistTabs.map((item) => ({ ...item, to: `/dashboard?tab=${item.id}`, isTab: true }));
@@ -259,11 +257,23 @@ export default function AppLayout() {
     }
   }
 
+  async function markAllNotificationsRead() {
+    if (!unreadCount) return;
+    const previousNotifications = notifications;
+    setNotifications((current) => current.map((item) => ({ ...item, isRead: true })));
+    try {
+      await api.patch("/auth/notifications/read-all");
+    } catch (error) {
+      setNotifications(previousNotifications);
+      setFeedback({ message: "", error: getErrorMessage(error) });
+    }
+  }
+
   return (
     <div className={`app-shell top-nav-shell role-shell role-${user?.role || "guest"}`}>
       <Feedback error={feedback.error} message={feedback.message} onClear={clearFeedback} />
       <header className="app-topnav">
-        <Link className="top-brand" to={user?.role === "patient" ? "/dashboard" : "/"}>
+        <Link className="top-brand" to={user?.role === "patient" ? "/dashboard#home" : "/"}>
           <DoorOpen size={24} />
           <span>{user?.role === "patient" ? "SmileCare" : "Phòng khám DAS"}</span>
         </Link>
@@ -294,7 +304,10 @@ export default function AppLayout() {
               <button
                 className="top-notification-button"
                 onClick={() => {
-                  setShowNotifications((value) => !value);
+                  setShowNotifications((value) => {
+                    if (!value) markAllNotificationsRead();
+                    return !value;
+                  });
                   setShowAccountMenu(false);
                 }}
                 ref={notificationButtonRef}

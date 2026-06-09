@@ -1,11 +1,11 @@
-import { CalendarPlus, CheckCheck, ClipboardPenLine, DoorOpen, FileText, Stethoscope } from "lucide-react";
+import { CalendarPlus, ClipboardPenLine, DoorOpen, FileText, Stethoscope } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import EmptyState from "../components/EmptyState.jsx";
 import Feedback from "../components/Feedback.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
-import { useAuth } from "../context/AuthContext.jsx";
-import { api, getErrorMessage } from "../services/api.js";
+import { useAuth } from "../redux/AuthContext.jsx";
+import { api, getErrorMessage } from "../utils/api.js";
 import { formatDateTime, formatMoney, todayInput } from "../utils/format.js";
 import { bookingSlotOptions, toClinicIso } from "./BookingPage.jsx";
 
@@ -29,8 +29,7 @@ const defaultRecordForm = {
   treatmentResult: "",
   treatmentNote: "",
   treatmentPlan: "",
-  estimatedCost: "",
-  prescription: ""
+  estimatedCost: ""
 };
 
 const defaultFollowUpForm = {
@@ -149,21 +148,24 @@ export default function ClinicalDashboard() {
     try {
       setError("");
       setMessage("");
-      await api.put(`/clinical/appointments/${recordForm.appointmentId}/treatment-record`, {
-        vitalSigns: {
-          bloodPressure: recordForm.bloodPressure,
-          spo2: recordForm.spo2,
-          temperature: recordForm.temperature,
-          respiratoryRate: recordForm.respiratoryRate
-        },
-        diagnosis: recordForm.diagnosis,
-        treatmentResult: recordForm.treatmentResult,
-        treatmentNote: recordForm.treatmentNote,
-        treatmentPlan: recordForm.treatmentPlan,
-        estimatedCost: Number(recordForm.estimatedCost || 0),
-        prescription: recordForm.prescription
-      });
-      setMessage("Đã lưu thông tin điều trị.");
+      const payload = user?.role === "nurse"
+        ? {
+            vitalSigns: {
+              bloodPressure: recordForm.bloodPressure,
+              spo2: recordForm.spo2,
+              temperature: recordForm.temperature,
+              respiratoryRate: recordForm.respiratoryRate
+            }
+          }
+        : {
+            diagnosis: recordForm.diagnosis,
+            treatmentResult: recordForm.treatmentResult,
+            treatmentNote: recordForm.treatmentNote,
+            treatmentPlan: recordForm.treatmentPlan,
+            estimatedCost: Number(recordForm.estimatedCost || 0)
+          };
+      await api.put(`/clinical/appointments/${recordForm.appointmentId}/treatment-record`, payload);
+      setMessage(user?.role === "nurse" ? "Đã lưu thông tin chung." : "Đã lưu thông tin điều trị.");
       await load();
     } catch (err) {
       setError(getErrorMessage(err));
@@ -189,28 +191,6 @@ export default function ClinicalDashboard() {
       });
       setMessage("Đã đặt lịch tái khám và gửi thông báo cho bệnh nhân.");
       setFollowUpForm((current) => ({ ...current, note: "" }));
-      await load();
-    } catch (err) {
-      setError(getErrorMessage(err));
-    }
-  }
-
-  async function completeAppointment() {
-    if (!recordForm.appointmentId) {
-      setError("Chọn lịch khám trước khi hoàn tất điều trị.");
-      return;
-    }
-
-    if (!window.confirm("Xác nhận hoàn tất lịch điều trị này?")) return;
-
-    try {
-      setError("");
-      setMessage("");
-      await api.patch(`/appointments/${recordForm.appointmentId}/status`, {
-        status: "completed",
-        note: "Y tá hoàn tất quy trình điều trị."
-      });
-      setMessage("Đã hoàn tất lịch điều trị. Bệnh nhân có thể gửi đánh giá.");
       await load();
     } catch (err) {
       setError(getErrorMessage(err));
@@ -345,64 +325,53 @@ export default function ClinicalDashboard() {
               </div>
             )}
 
-            <div className="form-grid">
-              <label className="field">
-                <span>Huyết áp</span>
-                <input value={recordForm.bloodPressure} onChange={(event) => updateRecord("bloodPressure", event.target.value)} />
-              </label>
-              <label className="field">
-                <span>SpO2</span>
-                <input value={recordForm.spo2} onChange={(event) => updateRecord("spo2", event.target.value)} />
-              </label>
-              <label className="field">
-                <span>Nhiệt độ</span>
-                <input value={recordForm.temperature} onChange={(event) => updateRecord("temperature", event.target.value)} />
-              </label>
-              <label className="field">
-                <span>Nhịp thở</span>
-                <input value={recordForm.respiratoryRate} onChange={(event) => updateRecord("respiratoryRate", event.target.value)} />
-              </label>
-            </div>
-
-            <label className="field">
-              <span>Chẩn đoán</span>
-              <textarea value={recordForm.diagnosis} onChange={(event) => updateRecord("diagnosis", event.target.value)} rows="3" />
-            </label>
-            <label className="field">
-              <span>Kế hoạch điều trị</span>
-              <textarea value={recordForm.treatmentPlan} onChange={(event) => updateRecord("treatmentPlan", event.target.value)} rows="3" />
-            </label>
-            <div className="form-grid">
-              <label className="field">
-                <span>Chi phí dự kiến</span>
-                <input type="number" min="0" value={recordForm.estimatedCost} onChange={(event) => updateRecord("estimatedCost", event.target.value)} />
-              </label>
-              <label className="field">
-                <span>Kết quả điều trị</span>
-                <input value={recordForm.treatmentResult} onChange={(event) => updateRecord("treatmentResult", event.target.value)} />
-              </label>
-            </div>
-            <label className="field">
-              <span>Đơn thuốc</span>
-              <textarea value={recordForm.prescription} onChange={(event) => updateRecord("prescription", event.target.value)} rows="3" />
-            </label>
-            <label className="field">
-              <span>Ghi chú điều trị</span>
-              <textarea value={recordForm.treatmentNote} onChange={(event) => updateRecord("treatmentNote", event.target.value)} rows="3" />
-            </label>
+            {user?.role === "nurse" ? (
+              <div className="form-grid">
+                <label className="field">
+                  <span>Huyết áp</span>
+                  <input value={recordForm.bloodPressure} onChange={(event) => updateRecord("bloodPressure", event.target.value)} />
+                </label>
+                <label className="field">
+                  <span>SpO2</span>
+                  <input value={recordForm.spo2} onChange={(event) => updateRecord("spo2", event.target.value)} />
+                </label>
+                <label className="field">
+                  <span>Nhiệt độ</span>
+                  <input value={recordForm.temperature} onChange={(event) => updateRecord("temperature", event.target.value)} />
+                </label>
+                <label className="field">
+                  <span>Nhịp thở</span>
+                  <input value={recordForm.respiratoryRate} onChange={(event) => updateRecord("respiratoryRate", event.target.value)} />
+                </label>
+              </div>
+            ) : (
+              <>
+                <label className="field">
+                  <span>Chẩn đoán</span>
+                  <textarea value={recordForm.diagnosis} onChange={(event) => updateRecord("diagnosis", event.target.value)} rows="3" />
+                </label>
+                <label className="field">
+                  <span>Kế hoạch điều trị</span>
+                  <textarea value={recordForm.treatmentPlan} onChange={(event) => updateRecord("treatmentPlan", event.target.value)} rows="3" />
+                </label>
+                <div className="form-grid">
+                  <label className="field">
+                    <span>Chi phí dự kiến</span>
+                    <input type="number" min="0" value={recordForm.estimatedCost} onChange={(event) => updateRecord("estimatedCost", event.target.value)} />
+                  </label>
+                  <label className="field">
+                    <span>Kết quả điều trị</span>
+                    <input value={recordForm.treatmentResult} onChange={(event) => updateRecord("treatmentResult", event.target.value)} />
+                  </label>
+                </div>
+                <label className="field">
+                  <span>Ghi chú điều trị</span>
+                  <textarea value={recordForm.treatmentNote} onChange={(event) => updateRecord("treatmentNote", event.target.value)} rows="3" />
+                </label>
+              </>
+            )}
             <div className="row-actions clinical-treatment-actions">
-              <button className="button primary">Lưu điều trị</button>
-              {user?.role !== "dentist" && (
-                <button
-                  type="button"
-                  className="button secondary"
-                  disabled={!recordForm.appointmentId || selectedAppointment?.status === "completed"}
-                  onClick={completeAppointment}
-                >
-                  <CheckCheck size={17} />
-                  Hoàn tất
-                </button>
-              )}
+              <button className="button primary">{user?.role === "nurse" ? "Lưu thông tin chung" : "Lưu điều trị"}</button>
             </div>
           </form>
         </section>
@@ -494,7 +463,6 @@ export default function ClinicalDashboard() {
                   <strong>{record.patient?.fullName}</strong>
                   <p>{record.diagnosis || "Chưa có chẩn đoán"}</p>
                   <span className="mini">{record.treatmentPlan || "Chưa có kế hoạch điều trị"}</span>
-                  <span className="mini">{record.prescription || "Chưa có đơn thuốc"}</span>
                 </div>
               ))}
             </div>

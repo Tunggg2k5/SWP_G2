@@ -15,8 +15,8 @@ import {
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Feedback from "../components/Feedback.jsx";
-import { usePublicBootstrap } from "../hooks/usePublicBootstrap.js";
-import { api, getErrorMessage } from "../services/api.js";
+import { usePublicBootstrap } from "../utils/usePublicBootstrap.js";
+import { api, getErrorMessage } from "../utils/api.js";
 import { formatMoney } from "../utils/format.js";
 import { firstError, validateName, validatePhone } from "../utils/validation.js";
 
@@ -217,7 +217,6 @@ export default function PublicHome() {
           <a href="#home">Trang chủ</a>
           <a href="#services">Dịch vụ</a>
           <a href="#about">Giới thiệu</a>
-          <a href="#contact">Liên hệ</a>
         </nav>
 
         <div className="smile-header-actions">
@@ -246,7 +245,7 @@ export default function PublicHome() {
               SmileCare mang đến giải pháp chăm sóc răng miệng toàn diện với công nghệ hiện đại và đội ngũ bác sĩ giàu kinh nghiệm.
             </p>
             <div className="smile-hero-actions">
-              <a className="smile-primary-link hero-action" href="#contact">
+              <a className="smile-primary-link hero-action" href="#consultation">
                 Đăng ký tư vấn miễn phí
                 <ChevronRight size={18} />
               </a>
@@ -255,30 +254,34 @@ export default function PublicHome() {
                 <ChevronRight size={18} />
               </a>
             </div>
-            <div className="smile-stats" aria-label="Thống kê SmileCare">
+          </div>
+
+          <div className="smile-hero-visual" aria-label="Hình ảnh phòng khám SmileCare">
+            <div className="smile-hero-image">
               <span>
-                <strong>15+</strong>
-                Năm Kinh Nghiệm
-              </span>
-              <span>
-                <strong>{roomCount}</strong>
-                Phòng Điều Trị
-              </span>
-              <span>
-                <strong>98%</strong>
-                Hài Lòng
-              </span>
-              <span>
-                <strong>{dentistCards.length}</strong>
-                Bác Sĩ Chuyên Khoa
+                <CheckCircle2 size={18} />
+                Thăm khám nhẹ nhàng
               </span>
             </div>
           </div>
 
-          <div className="smile-hero-gallery" aria-label="Hình ảnh phòng khám SmileCare">
-            <div className="smile-photo smile-photo-main" />
-            <div className="smile-photo smile-photo-smile" />
-            <div className="smile-photo smile-photo-room" />
+          <div className="smile-stats" aria-label="Thống kê SmileCare">
+            <span>
+              <strong>15+</strong>
+              Năm Kinh Nghiệm
+            </span>
+            <span>
+              <strong>{roomCount}</strong>
+              Phòng Điều Trị
+            </span>
+            <span>
+              <strong>98%</strong>
+              Hài Lòng
+            </span>
+            <span>
+              <strong>{dentistCards.length}</strong>
+              Bác Sĩ Chuyên Khoa
+            </span>
           </div>
         </section>
 
@@ -294,7 +297,7 @@ export default function PublicHome() {
 
           <div className="smile-service-grid">
             {serviceCards.map((service, index) => (
-              <article className={`smile-service-card ${index === 0 ? "large" : ""} tone-${service.accent}`} key={service._id || service.name}>
+              <article className={`smile-service-card tone-${service.accent}`} key={service._id || service.name}>
                 <span className="smile-icon-bubble">
                   <Stethoscope size={22} />
                 </span>
@@ -418,7 +421,7 @@ export default function PublicHome() {
           </div>
         </section>
 
-        <section className="smile-section smile-contact" id="contact">
+        <section className="smile-section smile-contact" id="consultation">
           <div className="smile-section-heading centered">
             <span className="smile-pill compact">
               <CalendarDays size={15} />
@@ -516,10 +519,10 @@ export default function PublicHome() {
           </div>
           <div>
             <h3>Hỗ trợ</h3>
-            <a href="#contact">Câu hỏi thường gặp</a>
+            <a href="#consultation">Câu hỏi thường gặp</a>
             <Link to="/register">Tạo tài khoản</Link>
             <Link to="/booking">Hướng dẫn đặt lịch</Link>
-            <a href="tel:19008888">Liên hệ</a>
+            <a href="tel:19008888">1900 8888</a>
           </div>
         </div>
         <div className="smile-footer-bottom">
