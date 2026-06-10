@@ -41,26 +41,30 @@ function rewriteRequestUrl(req) {
 
   originalUrl.searchParams.delete("path");
   const query = originalUrl.searchParams.toString();
+
   req.url = `/api/${path}${query ? `?${query}` : ""}`;
 }
 
 export default async function handler(req, res) {
   try {
     rewriteRequestUrl(req);
+
     const { app, connectDB } = await loadServerModules();
+
     await ensureDatabaseConnection(connectDB);
+
     return app(req, res);
   } catch (error) {
-    console.error(error);
+    console.error("API initialization error:", error);
+
     res.statusCode = 500;
     res.setHeader("Content-Type", "application/json");
+
     res.end(
       JSON.stringify({
         message: "API initialization failed",
-        detail:
-          error.message === "MONGODB_URI is required"
-            ? error.message
-            : "Check Vercel function logs",
+        detail: error.message || "Unknown server error",
+        name: error.name || "Error",
       })
     );
   }
