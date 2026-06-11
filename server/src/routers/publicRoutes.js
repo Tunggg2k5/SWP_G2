@@ -35,7 +35,7 @@ router.get("/services", async (_req, res) => {
 });
 
 router.get("/bootstrap", async (_req, res) => {
-  const [services, dentists, rooms] = await Promise.all([
+  const [services, dentists, rooms, reviews] = await Promise.all([
     DentalService.find({ isActive: true }).sort({ name: 1 }).lean(),
     User.find({ role: "dentist", status: "active" })
       .select("-passwordHash")
@@ -44,10 +44,28 @@ router.get("/bootstrap", async (_req, res) => {
     ClinicRoom.find({ isActive: true })
       .populate("assignedDentist", "fullName specialty")
       .sort({ name: 1 })
+      .lean(),
+    Review.find({ comment: { $exists: true, $ne: "" } })
+      .populate("patient", "fullName")
+      .populate("service", "name")
+      .populate("dentist", "fullName specialty")
+      .sort({ createdAt: -1 })
+      .limit(8)
       .lean()
   ]);
 
-  res.json({ services, dentists, rooms });
+  res.json({ services, dentists, rooms, reviews });
+});
+
+router.get("/reviews", async (_req, res) => {
+  const reviews = await Review.find({ comment: { $exists: true, $ne: "" } })
+    .populate("patient", "fullName")
+    .populate("service", "name")
+    .populate("dentist", "fullName specialty")
+    .sort({ createdAt: -1 })
+    .limit(25)
+    .lean();
+  res.json({ reviews });
 });
 
 router.get("/dentists", async (_req, res) => {

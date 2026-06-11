@@ -1,9 +1,15 @@
 import "dotenv/config";
+import dns from "node:dns";
 import app from "./app.js";
 import { connectDB } from "./config/db.js";
 
 const port = process.env.PORT || 4000;
 const mongoUri = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/das";
+const dnsServers = process.env.DNS_SERVERS?.split(",").map((server) => server.trim()).filter(Boolean);
+
+if (dnsServers?.length) {
+  dns.setServers(dnsServers);
+}
 
 try {
   await connectDB(mongoUri);

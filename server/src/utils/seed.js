@@ -163,17 +163,40 @@ async function run() {
   );
   await Receptionist.create(receptionists.map((user) => ({ user: user._id, status: "active" })));
 
+  const dentistProfiles = [
+    {
+      fullName: "BS. Nguyễn Minh Anh",
+      email: "dentist1@das.local",
+      phone: "0902000001",
+      specialty: "Chỉnh nha và phục hình thẩm mỹ",
+      yearsOfExperience: 12,
+      bio: "Tư vấn kế hoạch điều trị rõ ràng, theo dõi sát quá trình niềng răng và phục hình.",
+      licenseNo: "DAS-DEN-001"
+    },
+    {
+      fullName: "BS. Trần Hoàng Nam",
+      email: "dentist2@das.local",
+      phone: "0902000002",
+      specialty: "Cấy ghép Implant",
+      yearsOfExperience: 9,
+      bio: "Phụ trách điều trị phục hồi răng mất, lập kế hoạch an toàn và tối ưu chức năng ăn nhai.",
+      licenseNo: "DAS-DEN-002"
+    },
+    {
+      fullName: "BS. Lê Thanh Vy",
+      email: "dentist3@das.local",
+      phone: "0902000003",
+      specialty: "Nha khoa tổng quát",
+      yearsOfExperience: 15,
+      bio: "Khám ban đầu, tư vấn chăm sóc răng miệng định kỳ và đồng hành cùng bệnh nhân lâu dài.",
+      licenseNo: "DAS-DEN-003"
+    }
+  ];
   const dentists = await User.create(
-    Array.from({ length: 8 }).map((_, index) => ({
-      fullName: `Bác sĩ ${index + 1}`,
-      email: `dentist${index + 1}@das.local`,
-      phone: `090200000${index + 1}`,
+    dentistProfiles.map((profile) => ({
+      ...profile,
       role: "dentist",
       roleRef: roles.dentist._id,
-      specialty: index % 2 === 0 ? "Nha khoa tổng quát và phục hình" : "Phẫu thuật răng miệng",
-      yearsOfExperience: 4 + index,
-      bio: "Bác sĩ phụ trách khám, tư vấn và điều trị nha khoa.",
-      licenseNo: `DAS-DEN-${String(index + 1).padStart(3, "0")}`,
       passwordHash
     }))
   );
@@ -182,7 +205,7 @@ async function run() {
       user: user._id,
       specialization: user.specialty,
       qualification: "Bác sĩ Răng Hàm Mặt",
-      experienceYears: 4 + index,
+      experienceYears: dentistProfiles[index].yearsOfExperience,
       description: user.bio,
       status: "active"
     }))
@@ -292,7 +315,7 @@ async function run() {
   );
 
   const rooms = await ClinicRoom.create(
-    Array.from({ length: 5 }).map((_, index) => ({
+    Array.from({ length: 3 }).map((_, index) => ({
       name: `Phòng khám ${index + 1}`,
       roomType: "Phòng điều trị nha khoa",
       description: "Phòng được trang bị cho quy trình vận hành DAS.",

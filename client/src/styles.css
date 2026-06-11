@@ -4034,7 +4034,7 @@ th {
 .patient-dark-section h2 {
   margin: 0;
   color: #10233f;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: inherit;
   font-weight: 900;
   line-height: 1.05;
 }
@@ -4172,7 +4172,7 @@ th {
 .patient-dark-service-card h3 {
   margin: 0;
   color: var(--primary-dark);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: inherit;
   font-size: clamp(1.65rem, 2.4vw, 2.5rem);
   line-height: 1.1;
 }
@@ -4235,7 +4235,7 @@ th {
 
 .patient-dark-info-stack strong {
   color: var(--primary-dark);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: inherit;
   font-size: 1.2rem;
 }
 
@@ -5572,19 +5572,19 @@ th {
 
 /* Guest landing redesign based on the provided Stitch reference. */
 .smile-guest-page {
-  --smile-bg: #fffaf6;
-  --smile-bg-soft: #fff3eb;
+  --smile-bg: #f7fbff;
+  --smile-bg-soft: #eef6ff;
   --smile-card: #ffffff;
   --smile-line: rgba(24, 33, 55, 0.12);
   --smile-text: #182137;
   --smile-muted: #647083;
   --smile-teal: #101d3c;
   --smile-teal-dark: #0a1430;
-  --smile-green: #fff0e6;
-  --smile-gold: #f15a12;
-  --smile-orange: #f15a12;
-  --smile-orange-dark: #d94308;
-  --smile-orange-soft: #fff0e7;
+  --smile-green: #e7f0ff;
+  --smile-gold: #0b63ce;
+  --smile-orange: #0b63ce;
+  --smile-orange-dark: #074ea2;
+  --smile-orange-soft: #e8f2ff;
   color: var(--smile-text);
   background: #ffffff;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -5599,7 +5599,7 @@ th {
 }
 
 .smile-guest-page .smile-brand {
-  color: #a64b16;
+  color: #0b3d91;
   font-size: 1.55rem;
   font-weight: 900;
 }
@@ -5669,7 +5669,7 @@ th {
   padding: 76px clamp(28px, 7vw, 118px) 112px;
   overflow: visible;
   background:
-    linear-gradient(104deg, rgba(241, 90, 18, 0.96) 0 48%, rgba(255, 255, 255, 0.96) 48% 100%),
+    linear-gradient(104deg, rgba(11, 99, 206, 0.96) 0 48%, rgba(255, 255, 255, 0.96) 48% 100%),
     url("/clinic-hero.png") center right / cover no-repeat;
 }
 
@@ -5689,7 +5689,7 @@ th {
 
 .smile-section .smile-pill.compact,
 .smile-section .smile-pill.gold {
-  border-color: rgba(241, 90, 18, 0.18);
+  border-color: rgba(11, 99, 206, 0.18);
   background: var(--smile-orange-soft);
   color: var(--smile-orange-dark);
 }
@@ -5764,8 +5764,8 @@ th {
   margin: 0;
   overflow: hidden;
   border-radius: 8px;
-  background: linear-gradient(90deg, #f15a12, #ff7a1f);
-  box-shadow: 0 22px 50px rgba(190, 65, 7, 0.24);
+  background: linear-gradient(90deg, #0b63ce, #1e88e5);
+  box-shadow: 0 22px 50px rgba(7, 95, 145, 0.24);
 }
 
 .smile-stats span {
@@ -5826,7 +5826,7 @@ th {
   align-content: start;
   justify-items: center;
   min-height: 230px;
-  border-color: rgba(241, 90, 18, 0.18);
+  border-color: rgba(11, 99, 206, 0.18);
   padding: 26px 20px;
   background: #ffffff;
   text-align: center;
@@ -5834,20 +5834,20 @@ th {
 }
 
 .smile-service-card:hover {
-  border-color: rgba(241, 90, 18, 0.45);
+  border-color: rgba(11, 99, 206, 0.45);
   transform: translateY(-3px);
 }
 
 .smile-service-card:nth-child(3) {
-  background: linear-gradient(180deg, #fff7f1, #ffffff);
+  background: linear-gradient(180deg, #f4f9ff, #ffffff);
 }
 
 .smile-icon-bubble {
   width: 62px;
   height: 62px;
-  background: linear-gradient(135deg, var(--smile-orange), #ff7a1f);
+  background: linear-gradient(135deg, var(--smile-orange), #1e88e5);
   color: #ffffff;
-  box-shadow: 0 14px 26px rgba(241, 90, 18, 0.24);
+  box-shadow: 0 14px 26px rgba(11, 99, 206, 0.24);
 }
 
 .smile-service-card h3 {
@@ -5873,7 +5873,7 @@ th {
 .smile-feature-list span,
 .smile-clinic-panel,
 .smile-clinic-panel article {
-  border-color: rgba(241, 90, 18, 0.16);
+  border-color: rgba(11, 99, 206, 0.16);
   background: #ffffff;
 }
 
@@ -5897,11 +5897,100 @@ th {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.smile-dentist-carousel {
+  width: 100%;
+  padding: 0 54px 42px;
+}
+
+.smile-dentist-carousel .carousel-inner {
+  overflow: visible;
+}
+
+.smile-dentist-carousel .carousel-control-prev,
+.smile-dentist-carousel .carousel-control-next {
+  width: 42px;
+  opacity: 1;
+}
+
+.smile-dentist-carousel .carousel-control-prev {
+  left: 0;
+}
+
+.smile-dentist-carousel .carousel-control-next {
+  right: 0;
+}
+
+.smile-dentist-carousel .carousel-control-prev-icon,
+.smile-dentist-carousel .carousel-control-next-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background-color: var(--smile-orange);
+  background-size: 46%;
+  box-shadow: 0 12px 24px rgba(7, 40, 95, 0.18);
+}
+
+.smile-dentist-carousel .carousel-indicators {
+  bottom: -34px;
+  margin-bottom: 0;
+}
+
+.smile-dentist-carousel .carousel-indicators [data-bs-target] {
+  width: 9px;
+  height: 9px;
+  border: 0;
+  border-radius: 50%;
+  background-color: var(--smile-orange);
+}
+
 .smile-dentist-card {
   justify-items: center;
   min-height: 250px;
   padding: 28px;
   text-align: center;
+}
+
+.smile-dentist-card.featured {
+  grid-template-columns: minmax(220px, 0.54fr) minmax(0, 0.86fr);
+  align-items: center;
+  justify-items: stretch;
+  width: min(980px, 100%);
+  min-height: 0;
+  margin: 0 auto;
+  gap: 32px;
+  padding: clamp(22px, 4vw, 40px);
+  text-align: left;
+}
+
+.smile-dentist-card.featured img {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  object-fit: cover;
+  box-shadow: 0 18px 36px rgba(7, 40, 95, 0.16);
+}
+
+.smile-dentist-card.featured h3 {
+  margin-bottom: 18px;
+}
+
+.smile-dentist-card.featured ul {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.smile-dentist-card.featured li {
+  color: var(--smile-muted);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.smile-dentist-card.featured li:first-child {
+  color: var(--smile-orange-dark);
+  font-weight: 900;
 }
 
 .smile-dentist-card > span,
@@ -5936,7 +6025,7 @@ th {
 }
 
 .smile-testimonials {
-  background: linear-gradient(135deg, #ef520b 0%, #ff7a1f 100%);
+  background: linear-gradient(135deg, #075f91 0%, #1e88e5 100%);
 }
 
 .smile-testimonials .smile-section-heading h2 {
@@ -5950,7 +6039,7 @@ th {
 .smile-testimonial-grid article {
   border-color: rgba(255, 255, 255, 0.2);
   background: #ffffff;
-  box-shadow: 0 22px 46px rgba(111, 46, 11, 0.18);
+  box-shadow: 0 22px 46px rgba(7, 40, 95, 0.18);
 }
 
 .smile-stars {
@@ -5959,7 +6048,7 @@ th {
 
 .smile-contact {
   background:
-    linear-gradient(180deg, #ffffff 0 36%, rgba(241, 90, 18, 0.96) 36% 100%);
+    linear-gradient(180deg, #ffffff 0 36%, rgba(11, 99, 206, 0.96) 36% 100%);
 }
 
 .smile-consult-form {
@@ -5967,8 +6056,8 @@ th {
   border: 0;
   border-radius: 8px;
   padding: 38px;
-  background: linear-gradient(135deg, #f15a12, #ff7a1f);
-  box-shadow: 0 28px 62px rgba(160, 62, 9, 0.24);
+  background: linear-gradient(135deg, #0b63ce, #1e88e5);
+  box-shadow: 0 28px 62px rgba(7, 95, 145, 0.24);
 }
 
 .smile-consult-form label {
@@ -6005,7 +6094,7 @@ th {
 }
 
 .smile-footer {
-  background: linear-gradient(135deg, #f15a12, #ff7a1f);
+  background: linear-gradient(135deg, #0b63ce, #1e88e5);
   color: #ffffff;
 }
 
@@ -6029,7 +6118,7 @@ th {
 @media (max-width: 1240px) {
   .smile-hero {
     grid-template-columns: 1fr;
-    background: linear-gradient(135deg, #f15a12, #ff7a1f);
+    background: linear-gradient(135deg, #0b63ce, #1e88e5);
   }
 
   .smile-hero-visual {
@@ -6111,6 +6200,20 @@ th {
   .smile-hero-visual,
   .smile-hero-image {
     min-height: 280px;
+  }
+
+  .smile-dentist-carousel {
+    padding-inline: 0;
+  }
+
+  .smile-dentist-carousel .carousel-control-prev,
+  .smile-dentist-carousel .carousel-control-next {
+    display: none;
+  }
+
+  .smile-dentist-card.featured {
+    grid-template-columns: 1fr;
+    text-align: center;
   }
 
   .smile-stats,

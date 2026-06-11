@@ -1,8 +1,15 @@
 import "dotenv/config";
+import dns from "node:dns";
 import mongoose from "mongoose";
 
 let connectionPromise;
 let serverModulesPromise;
+
+const dnsServers = process.env.DNS_SERVERS?.split(",").map((server) => server.trim()).filter(Boolean);
+
+if (dnsServers?.length) {
+  dns.setServers(dnsServers);
+}
 
 async function loadServerModules() {
   if (!serverModulesPromise) {
@@ -56,7 +63,6 @@ export default async function handler(req, res) {
     return app(req, res);
   } catch (error) {
     console.error("API initialization error:", error);
-
     res.statusCode = 500;
     res.setHeader("Content-Type", "application/json");
 

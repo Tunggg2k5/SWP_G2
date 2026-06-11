@@ -13,12 +13,17 @@ import {
   UsersRound
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import Carousel from "react-bootstrap/Carousel";
 import { Link } from "react-router-dom";
+import EmptyState from "../components/EmptyState.jsx";
 import Feedback from "../components/Feedback.jsx";
 import { usePublicBootstrap } from "../utils/usePublicBootstrap.js";
 import { api, getErrorMessage } from "../utils/api.js";
 import { formatMoney } from "../utils/format.js";
 import { firstError, validateName, validatePhone } from "../utils/validation.js";
+import doctorLeThanhVy from "../assets/doctor-le-thanh-vy.png";
+import doctorNguyenMinhAnh from "../assets/doctor-nguyen-minh-anh.png";
+import doctorTranHoangNam from "../assets/doctor-tran-hoang-nam.png";
 
 const branchMap = {
   "TP. Hồ Chí Minh": ["SmileCare Quận 1 - 150 Hai Bà Trưng"]
@@ -26,26 +31,13 @@ const branchMap = {
 
 const salutationOptions = ["Anh", "Chị", "Khác"];
 
-const fallbackDentists = [
-  {
-    _id: "fallback-dentist-1",
-    fullName: "BS. Nguyễn Minh Anh",
-    specialty: "Chỉnh nha và phục hình thẩm mỹ",
-    description: "Theo dõi kế hoạch điều trị, tư vấn niềng răng và bọc răng sứ."
-  },
-  {
-    _id: "fallback-dentist-2",
-    fullName: "BS. Trần Hoàng Nam",
-    specialty: "Cấy ghép Implant",
-    description: "Phụ trách khám chuyên sâu, phục hồi răng mất và phẫu thuật miệng."
-  },
-  {
-    _id: "fallback-dentist-3",
-    fullName: "BS. Lê Thanh Vy",
-    specialty: "Nha khoa tổng quát",
-    description: "Khám ban đầu, tư vấn dịch vụ và chăm sóc răng miệng định kỳ."
-  }
-];
+const doctorPhotosByName = {
+  "BS. Nguyễn Minh Anh": doctorNguyenMinhAnh,
+  "BS. Trần Hoàng Nam": doctorTranHoangNam,
+  "BS. Lê Thanh Vy": doctorLeThanhVy
+};
+
+const doctorPhotoFallbacks = [doctorNguyenMinhAnh, doctorTranHoangNam, doctorLeThanhVy];
 
 const serviceFallback = [
   {
@@ -99,29 +91,6 @@ const faqs = [
   }
 ];
 
-const testimonials = [
-  {
-    name: "Chị Minh Anh",
-    service: "Cấy ghép Implant",
-    text: "Tôi đã cấy 2 răng Implant tại SmileCare. Bác sĩ rất tận tâm, quy trình chuyên nghiệp và ăn nhai thoải mái."
-  },
-  {
-    name: "Anh Tuấn Hưng",
-    service: "Niềng răng Invisalign",
-    text: "Niềng răng trong suốt rất tiện lợi. Sau 18 tháng hàm răng đều đẹp hơn, đội ngũ theo dõi sát."
-  },
-  {
-    name: "Chị Hải Yến",
-    service: "Bọc răng sứ thẩm mỹ",
-    text: "Màu răng tự nhiên, nụ cười sáng hơn nhưng vẫn hài hòa. Tôi rất hài lòng với kết quả."
-  },
-  {
-    name: "Bé Gia Bảo",
-    service: "Nha khoa trẻ em",
-    text: "Bé nhà mình rất sợ đi nha sĩ nhưng khi đến đây lại hợp tác, các cô chú nhẹ nhàng và thân thiện."
-  }
-];
-
 function getClinicBranches() {
   return Object.entries(branchMap).flatMap(([province, branches]) =>
     branches.map((branch) => ({
@@ -144,10 +113,41 @@ function getServiceCards(services) {
   }));
 }
 
+function getDoctorPhoto(dentist, index) {
+  return dentist.avatarUrl || doctorPhotosByName[dentist.fullName] || doctorPhotoFallbacks[index % doctorPhotoFallbacks.length];
+}
+
+function getDoctorExperience(dentist) {
+  const years = Number(dentist.yearsOfExperience || dentist.experienceYears || 0);
+  return years > 0 ? `${years}+ năm kinh nghiệm` : "Nhiều năm kinh nghiệm điều trị nha khoa";
+}
+
+function getDoctorInfo(dentist) {
+  return [
+    getDoctorExperience(dentist),
+    dentist.licenseNo ? `Mã chứng chỉ: ${dentist.licenseNo}` : "Bác sĩ Răng Hàm Mặt",
+    dentist.bio || "Tư vấn kế hoạch điều trị rõ ràng, theo dõi sát từng lịch hẹn và chăm sóc bệnh nhân nhẹ nhàng."
+  ];
+}
+
+function getReviewCards(reviews) {
+  return newestFirst(reviews)
+    .filter((review) => review.comment)
+    .slice(0, 8)
+    .map((review) => ({
+      _id: review._id,
+      name: review.patient?.fullName || "Khách hàng SmileCare",
+      service: review.service?.name || "Dịch vụ nha khoa",
+      text: review.comment,
+      rating: Math.min(Math.max(Number(review.rating || 5), 1), 5)
+    }));
+}
+
 export default function PublicHome() {
-  const { services, dentists, rooms } = usePublicBootstrap();
+  const { services, dentists, rooms, reviews } = usePublicBootstrap();
   const clinicBranches = useMemo(() => getClinicBranches(), []);
-  const dentistCards = dentists.length ? newestFirst(dentists).slice(0, 3) : fallbackDentists;
+  const dentistCards = useMemo(() => newestFirst(dentists), [dentists]);
+  const reviewCards = useMemo(() => getReviewCards(reviews), [reviews]);
   const serviceCards = useMemo(() => getServiceCards(services), [services]);
   const roomCount = rooms.length ? Math.min(rooms.length, 3) : 3;
   const [openFaq, setOpenFaq] = useState(0);
@@ -157,8 +157,7 @@ export default function PublicHome() {
     salutation: "Anh",
     fullName: "",
     phone: "",
-    service: "",
-    note: ""
+    service: ""
   });
 
   const selectedService = services.find((service) => service._id === form.service);
@@ -187,7 +186,7 @@ export default function PublicHome() {
           `Danh xưng: ${form.salutation}`,
           `Dịch vụ quan tâm: ${selectedService?.name || "Chưa chọn"}`,
           `Chi nhánh: ${branchMap["TP. Hồ Chí Minh"][0]}`,
-          form.note ? `Ghi chú: ${form.note}` : "Khách muốn nhận tư vấn đặt lịch."
+          "Khách muốn nhận tư vấn đặt lịch."
         ].join(". ")
       });
 
@@ -195,8 +194,7 @@ export default function PublicHome() {
         salutation: "Anh",
         fullName: "",
         phone: "",
-        service: "",
-        note: ""
+        service: ""
       });
       setMessage("Đã ghi nhận yêu cầu tư vấn. Lễ tân sẽ liên hệ để xác nhận lịch.");
     } catch (err) {
@@ -265,24 +263,6 @@ export default function PublicHome() {
             </div>
           </div>
 
-          <div className="smile-stats" aria-label="Thống kê SmileCare">
-            <span>
-              <strong>15+</strong>
-              Năm Kinh Nghiệm
-            </span>
-            <span>
-              <strong>{roomCount}</strong>
-              Phòng Điều Trị
-            </span>
-            <span>
-              <strong>98%</strong>
-              Hài Lòng
-            </span>
-            <span>
-              <strong>{dentistCards.length}</strong>
-              Bác Sĩ Chuyên Khoa
-            </span>
-          </div>
         </section>
 
         <section className="smile-section smile-services" id="services">
@@ -357,16 +337,27 @@ export default function PublicHome() {
             <h2>Bác sĩ đồng hành theo từng kế hoạch điều trị</h2>
           </div>
 
-          <div className="smile-dentist-grid">
-            {dentistCards.map((dentist) => (
-              <article className="smile-dentist-card" key={dentist._id}>
-                <span>{dentist.fullName?.trim()?.[0]?.toUpperCase() || "B"}</span>
-                <h3>{dentist.fullName}</h3>
-                <strong>{dentist.specialty || "Nha khoa tổng quát"}</strong>
-                <p>{dentist.description || "Khám, tư vấn và theo dõi kế hoạch điều trị cho bệnh nhân."}</p>
-              </article>
-            ))}
-          </div>
+          {dentistCards.length ? (
+            <Carousel className="smile-dentist-carousel single-card" interval={5000}>
+              {dentistCards.map((dentist, index) => (
+                <Carousel.Item key={dentist._id}>
+                  <article className="smile-dentist-card featured">
+                    <img src={getDoctorPhoto(dentist, index)} alt={dentist.fullName} />
+                    <div>
+                      <h3>{dentist.fullName}</h3>
+                      <ul>
+                        {getDoctorInfo(dentist).map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </article>
+                </Carousel.Item>
+              ))}
+            </Carousel>
+          ) : (
+            <EmptyState title="Chưa có bác sĩ" text="Danh sách bác sĩ sẽ hiển thị sau khi quản trị viên thêm hồ sơ bác sĩ active." />
+          )}
         </section>
 
         <section className="smile-section smile-faq">
@@ -402,23 +393,30 @@ export default function PublicHome() {
             </span>
             <h2>Hơn 50.000 Khách Hàng Đã Tin Tưởng SmileCare</h2>
           </div>
-          <div className="smile-testimonial-grid">
-            {testimonials.map((item) => (
-              <article key={item.name}>
-                <div className="smile-stars" aria-label="5 sao">
-                  {Array.from({ length: 5 }).map((_, index) => (
-                    <Star size={16} fill="currentColor" key={index} />
-                  ))}
-                </div>
-                <p>“{item.text}”</p>
-                <div>
-                  <span>{item.name[0]}</span>
-                  <strong>{item.name}</strong>
-                  <small>{item.service}</small>
-                </div>
-              </article>
-            ))}
-          </div>
+          {reviewCards.length ? (
+            <div className="smile-testimonial-grid">
+              {reviewCards.map((item) => (
+                <article key={item._id}>
+                  <div className="smile-stars" aria-label={`${item.rating} sao`}>
+                    {Array.from({ length: item.rating }).map((_, index) => (
+                      <Star size={16} fill="currentColor" key={index} />
+                    ))}
+                  </div>
+                  <p>"{item.text}"</p>
+                  <div>
+                    <span>{item.name[0]}</span>
+                    <strong>{item.name}</strong>
+                    <small>{item.service}</small>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="Chưa có đánh giá"
+              text="Đánh giá của khách hàng sẽ hiển thị tại đây sau khi bệnh nhân gửi từ hệ thống."
+            />
+          )}
         </section>
 
         <section className="smile-section smile-contact" id="consultation">
@@ -478,17 +476,6 @@ export default function PublicHome() {
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="wide">
-              <span>Ghi chú thêm</span>
-              <textarea
-                value={form.note}
-                onChange={(event) => updateForm("note", event.target.value)}
-                placeholder="Mô tả ngắn gọn tình trạng răng miệng hoặc yêu cầu của bạn..."
-                rows="4"
-                maxLength={500}
-              />
-              <small>{form.note.length}/500 ký tự</small>
             </label>
             <button className="smile-submit" type="submit">
               <Send size={18} />
